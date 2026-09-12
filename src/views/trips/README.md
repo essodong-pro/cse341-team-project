@@ -1,0 +1,2 @@
+# Important Note About This Directory
+This directory is called `trips` because it contains the views for the different features related to the train trips **NOT** because it contains views for all the route handlers in the application.
