@@ -1,79 +1,240 @@
 <%- include('../partials/header') %>
-<h1><%- title %></h1>
 
-<div id="filters">
-    Search by Region:
-    <select id="region-filter">
-        <option value="all">All Regions</option>
-        <% regions.forEach((region) => { %>
-            <option value="<%= region %>" <%= query.region === region ? 'selected' : '' %>><%= region.charAt(0).toUpperCase() + region.slice(1) %></option>
-        <% }); %>
-    </select>
+    <h1><%- title %></h1>
 
-    Search by Season:
-    <select id="season-filter">
-        <option value="all">Any Season</option>
-        <% seasons.forEach((season) => { %>
-            <option value="<%= season %>" <%= query.season === season ? 'selected' : '' %>><%= season.charAt(0).toUpperCase() + season.slice(1) %></option>
-        <% }); %>
-    </select>
-</div>
+    <div id="filters">
+        <label for="region-filter">Search by Region:</label>
+        <select id="region-filter">
+            <option value="all">All Regions</option>
+        </select>
 
-<div class="routes-grid">
-    <% trips.forEach(trip => { %>
-        <div class="route-card <%= trip.region %>">
-            <div class="route-header">
-                <h2 class="route-name"><%= trip.name %></h2>
-                <span class="route-region"><%= trip.region %></span>
-            </div>
+        <label for="season-filter">Search by Season:</label>
+        <select id="season-filter">
+            <option value="all">Any Season</option>
+        </select>
+    </div>
 
-            <div class="station-info">
-                <div class="station">
-                    <div class="station-type">From:</div>
-                    <div class="station-name"><%= trip.startStation %></div>
-                </div>
-                <div class="route-arrow">&#8594;</div>
-                <div class="station">
-                    <div class="station-type">To:</div>
-                    <div class="station-name"><%= trip.endStation %></div>
-                </div>
-            </div>
+    <div class="routes-grid" id="trips-container">
+        <p>Loading trips...</p>
+    </div>
 
-            <div class="route-details">
-                <div class="detail-item">
-                    <span class="detail-icon">&#128337;</span>
-                    <span><span class="detail-label">Duration:</span> <%= trip.duration %></span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-icon">&#128205;</span>
-                    <span><span class="detail-label">Distance:</span> <%= trip.distance %>km</span>
-                </div>
-                <div class="detail-item">
-                    <span class="season-badge season-<%= trip.bestSeason %>">
-                        Best in <%= trip.bestSeason %>
-                    </span>
-                </div>
-            </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const container = document.getElementById("trips-container");
+            const regionFilter = document.getElementById("region-filter");
+            const seasonFilter = document.getElementById("season-filter");
 
-            <div class="route-description">
-                <%= trip.description %>
-            </div>
+            let trips = [];
 
-            <div class="highlights">
-                <div class="highlights-list">
-                    <% trip.highlights.forEach(highlight => { %>
-                        <span class="highlight-tag"><%= highlight %></span>
-                    <% }); %>
-                </div>
-            </div>
-                
-            <div class="route-actions">
-                <a href="/trips/<%= trip.id %>" class="view-details-btn">
-                    View Details &amp; Book &#8594;
-                </a>
-            </div>
-        </div>
-    <% }); %>
-</div>
+            try {
+                const response = await fetch("/api/trips");
 
-<%- include('../partials/footer') %>
+                if (!response.ok) {
+                    throw new Error("Failed to fetch trips");
+                }
+
+                trips = await response.json();
+
+                if (!Array.isArray(trips)) {
+                    throw new Error("Invalid trip data received");
+                }
+
+                // Create the region options from the API data.
+                const regions = [...new Set(
+                    trips
+                        .map(trip => trip.region)
+                        .filter(Boolean)
+                )].sort();
+
+                regions.forEach(region => {
+                    const option = document.createElement("option");
+                    option.value = region;
+                    option.textContent =
+                        region.charAt(0).toUpperCase() + region.slice(1);
+
+                    regionFilter.appendChild(option);
+                });
+
+                // Create the season options from the API data.
+                const seasons = [...new Set(
+                    trips
+                        .map(trip => trip.bestSeason)
+                        .filter(Boolean)
+                )].sort();
+
+                seasons.forEach(season => {
+                    const option = document.createElement("option");
+                    option.value = season;
+                    option.textContent =
+                        season.charAt(0).toUpperCase() + season.slice(1);
+
+                    seasonFilter.appendChild(option);
+                });
+
+                // Read the filters from the URL.
+                const urlParams = new URLSearchParams(window.location.search);
+
+                const selectedRegion = urlParams.get("region") || "all";
+                const selectedSeason = urlParams.get("season") || "all";
+
+                // Set the dropdowns to match the URL.
+                if (
+                    selectedRegion === "all" ||
+                    regions.includes(selectedRegion)
+                ) {
+                    regionFilter.value = selectedRegion;
+                }
+
+                if (
+                    selectedSeason === "all" ||
+                    seasons.includes(selectedSeason)
+                ) {
+                    seasonFilter.value = selectedSeason;
+                }
+
+                // Display the trips using the selected filters.
+                renderTrips();
+
+                // Render trips based on the selected filters.
+                function renderTrips() {
+                    const region = regionFilter.value;
+                    const season = seasonFilter.value;
+
+                    const filteredTrips = trips.filter(trip => {
+                        const matchesRegion =
+                            region === "all" || trip.region === region;
+
+                        const matchesSeason =
+                            season === "all" || trip.bestSeason === season;
+
+                        return matchesRegion && matchesSeason;
+                    });
+
+                    if (filteredTrips.length === 0) {
+                        container.innerHTML = "<p>No trips match your filters.</p>";
+                        return;
+                    }
+
+                    container.innerHTML = filteredTrips.map(trip => {
+                        const highlightsHtml = (trip.highlights || [])
+                            .map(highlight =>
+                                `<span class="highlight-tag">${highlight}</span>`
+                            )
+                            .join("");
+
+                        return `
+                        <div class="route-card ${trip.region || ""}">
+                            <div class="route-header">
+                                <h2 class="route-name">
+                                    ${trip.name || ""}
+                                </h2>
+
+                                <span class="route-region">
+                                    ${trip.region || ""}
+                                </span>
+                            </div>
+
+                            <div class="station-info">
+                                <div class="station">
+                                    <div class="station-type">From:</div>
+                                    <div class="station-name">
+                                        ${trip.startStation || trip.departureStation || ""}
+                                    </div>
+                                </div>
+
+                                <div class="route-arrow">&#8594;</div>
+
+                                <div class="station">
+                                    <div class="station-type">To:</div>
+                                    <div class="station-name">
+                                        ${trip.endStation || trip.arrivalStation || ""}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="route-details">
+                                <div class="detail-item">
+                                    <span class="detail-icon">&#128337;</span>
+                                    <span>
+                                        <span class="detail-label">Duration:</span>
+                                        ${trip.duration || "N/A"}
+                                    </span>
+                                </div>
+
+                                <div class="detail-item">
+                                    <span class="detail-icon">&#128205;</span>
+                                    <span>
+                                        <span class="detail-label">Distance:</span>
+                                        ${trip.distance ? trip.distance + " km" : "N/A"}
+                                    </span>
+                                </div>
+
+                                <div class="detail-item">
+                                    <span class="season-badge season-${trip.bestSeason || ""}">
+                                        Best in ${trip.bestSeason || "N/A"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="route-description">
+                                ${trip.description || ""}
+                            </div>
+
+                            <div class="highlights">
+                                <div class="highlights-list">
+                                    ${highlightsHtml}
+                                </div>
+                            </div>
+
+                            <div class="route-actions">
+                                <a
+                                    href="/trips/${trip.id}"
+                                    class="view-details-btn"
+                                >
+                                    View Details &amp; Book &#8594;
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    }).join("");
+                }
+
+                function updateFilters() {
+                    const region = regionFilter.value;
+                    const season = seasonFilter.value;
+
+                    const params = new URLSearchParams();
+
+                    if (region !== "all") {
+                        params.set("region", region);
+                    }
+
+                    if (season !== "all") {
+                        params.set("season", season);
+                    }
+
+                    const queryString = params.toString();
+
+                    const newUrl = queryString
+                        ? `/trips?${queryString}`
+                        : "/trips";
+
+                    window.history.pushState({}, "", newUrl);
+
+                    renderTrips();
+                }
+
+                regionFilter.addEventListener("change", updateFilters);
+
+                seasonFilter.addEventListener("change", updateFilters);
+
+            } catch (error) {
+                console.error("Error loading trips:", error);
+
+                container.innerHTML =
+                    "<p>Error loading trips. Please try again later.</p>";
+            }
+        });
+    </script>
+
+    <%- include('../partials/footer') %>

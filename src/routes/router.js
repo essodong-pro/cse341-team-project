@@ -1,7 +1,7 @@
-import railTripsRouter from './trips.js';
-import { trainsApi, trainsPage } from './trains.js';
 import { Router } from 'express';
 import { homePage, aboutPage, testErrorPage } from './index.js';
+import { trainsApi, trainsPage } from './trains.js';
+import { renderTripsList, renderTripDetails, getAllTrips, getTripById } from '../controllers/trips.js';
 
 const router = Router();
 
@@ -17,8 +17,13 @@ router.get('/trains', trainsPage);
 // Trains API
 router.get('/api/trains', trainsApi);
 
-// Rail trips
-router.use('/trips', railTripsRouter);
+// Trips pages (EJS)
+router.get('/trips', renderTripsList);
+router.get('/trips/:id', renderTripDetails);
+
+// Trips API (JSON)
+router.get('/api/trips', getAllTrips);
+router.get('/api/trips/:id', getTripById);
 
 // Test 500 error page
 router.get('/500', testErrorPage);
