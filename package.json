@@ -3,7 +3,8 @@
 	"dependencies": {
 		"ejs": "^6.0.1",
 		"express": "^5.1.0",
-		"mongodb": "^7.5.0"
+		"mongodb": "^7.5.0",
+		"mongoose": "^9.10.1"
 	},
 	"scripts": {
 		"db:import": "node --env-file=.env src/db/import.js",
