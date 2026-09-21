@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { homePage, aboutPage, testErrorPage } from './index.js';
 import { trainsApi, trainsPage } from './trains.js';
 import { renderTripsList, renderTripDetails, getAllTrips, getTripById } from '../controllers/trips.js';
+import {
+    getSchedulesForTrip,
+    getSchedulesForTripAndMonth
+} from "../controllers/schedules.js";
 
 const router = Router();
 
@@ -24,6 +28,10 @@ router.get('/trips/:id', renderTripDetails);
 // Trips API (JSON)
 router.get('/api/trips', getAllTrips);
 router.get('/api/trips/:id', getTripById);
+
+// Schedules API (JSON)
+router.get('/api/trips/:id/schedules',getSchedulesForTrip);
+router.get('/api/trips/:id/schedules/month',getSchedulesForTripAndMonth);
 
 // Test 500 error page
 router.get('/500', testErrorPage);
