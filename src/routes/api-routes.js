@@ -91,7 +91,6 @@ router.get(
     "/trips/:id/schedules",
     getSchedulesForTrip
 );
-
 /**
  * @swagger
  * /api/trips/{id}/schedules?month={month}:
