@@ -1,7 +1,14 @@
 import Schedule from "./schemas/schedules.js";
 
 export async function getSchedulesByTripId(
-    tripId
+    tripId,
+    month
 ) {
-    return Schedule.find({ tripId }).lean();
+    const query = { tripId };
+
+    if (month) {
+        query.month = month;
+    }
+
+    return Schedule.find(query).lean();
 }

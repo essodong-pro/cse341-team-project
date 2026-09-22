@@ -54,7 +54,7 @@ export async function getSchedulesForTripAndMonth(
         }
 
         const schedules =
-            await getSchedulesByTripId(id);
+            await getSchedulesByTripId(id, Number(month));
 
         if (!schedules.length) {
             return res.status(404).json({

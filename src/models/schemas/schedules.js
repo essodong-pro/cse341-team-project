@@ -35,6 +35,10 @@ const scheduleSchema = new mongoose.Schema(
             type: Boolean,
             required: true,
         },
+        month: {
+            type: Number,
+            required: true,
+        },
     },
     {
         timestamps: true,
