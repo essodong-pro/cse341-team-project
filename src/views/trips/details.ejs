@@ -63,7 +63,7 @@
             <h2>Operating Schedule</h2>
             <div class="months-grid">
                 <% details.operatingMonths.forEach(function(month) { %>
-                <span class="month-badge"><%= month %></span>
+                <span class="month-badge" data-month="<%= month %>"><%= month %></span>
                 <% }); %>
             </div>
         </div>      
@@ -76,9 +76,15 @@
     </div>
 </article>
 <script>
-    async function loadSchedules() {
+    async function loadSchedules(month) {
         const tripId = "<%= details.id %>";
-        const response = await fetch(`/api/trips/${tripId}/schedules`);
+        let url = `/api/trips/${tripId}/schedules`;
+
+        if (month) {
+            url = `/api/trips/${tripId}/schedules/month?month=${month}`;
+        }
+
+        const response = await fetch(url);
         const schedules = await response.json();
         const container = document.getElementById("schedules-container");
         container.innerHTML = schedules.map(schedule => `
@@ -105,6 +111,11 @@
         </div>
         `).join("");
     }
+    document.querySelectorAll(".month-badge").forEach(badge => {
+        badge.addEventListener("click", () => {
+            loadSchedules(badge.dataset.month);
+        });
+    });
     loadSchedules();
 </script>
 <%- include('../partials/footer') %>
