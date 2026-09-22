@@ -124,5 +124,59 @@
         "daysOfWeek": ["saturday", "sunday"],
         "status": false,
         "month": 3
+    },
+    {
+        "id": 15,
+        "tripId": "alpine-panorama",
+        "departureTime": "09:00",
+        "arrivalTime": "13:30",
+        "daysOfWeek": ["monday", "wednesday", "friday"],
+        "status": true,
+        "month": 6
+    },
+    {
+        "id": 16,
+        "tripId": "alpine-panorama",
+        "departureTime": "10:00",
+        "arrivalTime": "14:30",
+        "daysOfWeek": ["tuesday", "thursday"],
+        "status": true,
+        "month": 7
+    },
+    {
+        "id": 17,
+        "tripId": "alpine-panorama",
+        "departureTime": "08:45",
+        "arrivalTime": "13:15",
+        "daysOfWeek": ["monday", "saturday"],
+        "status": true,
+        "month": 8
+    },
+    {
+        "id": 18,
+        "tripId": "alpine-panorama",
+        "departureTime": "09:15",
+        "arrivalTime": "13:45",
+        "daysOfWeek": ["wednesday", "friday"],
+        "status": true,
+        "month": 9
+    },
+    {
+        "id": 19,
+        "tripId": "alpine-panorama",
+        "departureTime": "08:00",
+        "arrivalTime": "12:30",
+        "daysOfWeek": ["tuesday", "sunday"],
+        "status": true,
+        "month": 10
+    },
+    {
+        "id": 20,
+        "tripId": "alpine-panorama",
+        "departureTime": "10:30",
+        "arrivalTime": "15:00",
+        "daysOfWeek": ["thursday", "saturday"],
+        "status": true,
+        "month": 11
     }
 ]
