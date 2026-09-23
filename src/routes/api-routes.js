@@ -9,6 +9,11 @@ import {
     getTripById
 } from "../controllers/trips.js";
 
+import {
+    getAllTicketClasses,
+    getTicketClassesForDay
+} from "../controllers/ticket-classes.js";
+
 const router = express.Router();
 
 /**
@@ -66,5 +71,39 @@ router.get("/trips", getAllTrips);
  *         description: A single trip object
  */
 router.get("/trips/:id", getTripById);
+
+/**
+ * @swagger
+ * /api/ticket-classes:
+ *   get:
+ *     summary: Returns ticket classes
+ *     parameters:
+ *       - in: query
+ *         name: day
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - monday
+ *             - tuesday
+ *             - wednesday
+ *             - thursday
+ *             - friday
+ *             - saturday
+ *             - sunday
+ *         description: Return only ticket classes available on the selected day.
+ *     responses:
+ *       200:
+ *         description: A list of ticket classes
+ *       400:
+ *         description: Invalid day
+ */
+router.get("/ticket-classes", (req, res, next) => {
+    if (req.query.day) {
+        return getTicketClassesForDay(req, res, next);
+    }
+
+    return getAllTicketClasses(req, res, next);
+});
 
 export default router;

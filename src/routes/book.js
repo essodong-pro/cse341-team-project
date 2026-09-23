@@ -1,5 +1,6 @@
 import { getDb } from '../db/connect.js';
 import { generateConfirmationCode } from '../includes/helpers.js';
+import { getAllTicketClasses } from '../models/ticket-classes.js';
 
 const bookingPage = async (req, res) => {
     const { scheduleId } = req.params;
@@ -7,7 +8,8 @@ const bookingPage = async (req, res) => {
     const db = getDb();
     const schedule = await db.collection('schedules').findOne({ id: Number(scheduleId) });
     const trip = await db.collection('trips').findOne({ id: schedule.tripId });
-    const ticketClasses = await db.collection('ticketClasses').find({}).toArray();
+    const ticketClasses = await getAllTicketClasses();
+
     const ticketOptions = ticketClasses.map((ticketClass) => ({
         class: ticketClass.class,
         name: ticketClass.name,

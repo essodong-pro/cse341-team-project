@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { homePage, aboutPage, testErrorPage } from './index.js';
 import { trainsApi, trainsPage } from './trains.js';
 import { renderTripsList, renderTripDetails, getAllTrips, getTripById } from '../controllers/trips.js';
+import {
+    getAllTicketClasses,
+    getTicketClassesForDay
+} from '../controllers/ticket-classes.js';
 
 const router = Router();
 
@@ -25,7 +29,16 @@ router.get('/trips/:id', renderTripDetails);
 router.get('/api/trips', getAllTrips);
 router.get('/api/trips/:id', getTripById);
 
-// Test 500 error page
-router.get('/500', testErrorPage);
+// Ticket Classes API
+// Ticket Classes API
+router.get('/api/ticket-classes', (req, res, next) => {
+    if (req.query.day) {
+        return getTicketClassesForDay(req, res, next);
+    }
+
+    return getAllTicketClasses(req, res, next);
+});
+
+
 
 export default router;
