@@ -3,11 +3,13 @@
     <div class="route-header">
         <div class="route-header-content">
             <h1 class="route-name"><%= title %></h1>
-            <p class="route-description">Complete your booking details below.</p>
+            <p class="route-description">
+                <%= trip.name %> &mdash; Departs <%= schedule.departureTime %>, Arrives <%= schedule.arrivalTime %>
+            </p>
         </div>
     </div>
 
-    <form class="booking-form" method="POST" action="/trips/book">
+    <form class="booking-form" method="POST" action="/bookings">
         <input type="hidden" name="scheduleId" value="<%= schedule.id %>">
         <input type="hidden" name="tripId" value="<%= schedule.tripId %>">
 

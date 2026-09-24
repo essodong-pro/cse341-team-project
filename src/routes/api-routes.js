@@ -9,6 +9,11 @@ import {
     getTripById
 } from "../controllers/trips.js";
 
+import {
+    getAllBookings,
+    getBookingById
+} from "../controllers/bookings.js";
+
 const router = express.Router();
 
 /**
@@ -66,5 +71,39 @@ router.get("/trips", getAllTrips);
  *         description: A single trip object
  */
 router.get("/trips/:id", getTripById);
+
+/**
+ * @swagger
+ * /api/bookings:
+ *   get:
+ *     summary: Returns all bookings
+ *     responses:
+ *       200:
+ *         description: A list of bookings
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bookings", getAllBookings);
+
+/**
+ * @swagger
+ * /api/bookings/{id}:
+ *   get:
+ *     summary: Returns a booking by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A single booking object
+ *       404:
+ *         description: Booking not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bookings/:id", getBookingById);
 
 export default router;
