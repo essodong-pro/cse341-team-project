@@ -22,6 +22,14 @@
             
             <div class="details-grid">
                 <div class="detail-card">
+                    <div class="detail-icon">🚆</div>
+                    <div class="detail-content">
+                        <span class="detail-label">Trip</span>
+                        <span class="detail-value"><%= confirmation.tripName %></span>
+                    </div>
+                </div>
+
+                <div class="detail-card">
                     <div class="detail-icon">🎫</div>
                     <div class="detail-content">
                         <span class="detail-label">Ticket Class</span>
@@ -50,6 +58,14 @@
                     <div class="detail-content">
                         <span class="detail-label">Booked On</span>
                         <span class="detail-value"><%= new Date(confirmation.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></span>
+                    </div>
+                </div>
+
+                <div class="detail-card">
+                    <div class="detail-icon">💴</div>
+                    <div class="detail-content">
+                        <span class="detail-label">Total Price</span>
+                        <span class="detail-value">¥<%= Number(confirmation.totalPrice).toLocaleString() %></span>
                     </div>
                 </div>
             </div>

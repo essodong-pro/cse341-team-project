@@ -14,6 +14,16 @@ import {
     getTicketClassesForDay
 } from "../controllers/ticket-classes.js";
 
+import {
+    getSchedulesForTrip,
+    getSchedulesForTripAndMonth
+} from "../controllers/schedules.js";
+
+import {
+    getAllBookings,
+    getBookingById
+} from "../controllers/bookings.js";
+
 const router = express.Router();
 
 /**
@@ -105,5 +115,84 @@ router.get("/ticket-classes", (req, res, next) => {
 
     return getAllTicketClasses(req, res, next);
 });
+
+/**
+ * @swagger
+ * /api/trips/{id}/schedules:
+ *   get:
+ *     summary: Returns schedules for a trip
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of schedules
+ */
+router.get(
+    "/trips/:id/schedules",
+    getSchedulesForTrip
+);
+
+/**
+ * @swagger
+ * /api/trips/{id}/schedules/month:
+ *   get:
+ *     summary: Returns schedules for a trip and month
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: month
+ *         required: false
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: List of schedules
+ */
+router.get(
+    "/trips/:id/schedules/month",
+    getSchedulesForTripAndMonth
+);
+
+/**
+ * @swagger
+ * /api/bookings:
+ *   get:
+ *     summary: Returns all bookings
+ *     responses:
+ *       200:
+ *         description: A list of bookings
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bookings", getAllBookings);
+
+/**
+ * @swagger
+ * /api/bookings/{id}:
+ *   get:
+ *     summary: Returns a booking by ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A single booking object
+ *       404:
+ *         description: Booking not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bookings/:id", getBookingById);
 
 export default router;

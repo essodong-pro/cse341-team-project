@@ -1,3 +1,5 @@
 node_modules/
 src/models/db-in-file.json
 .env
+.gstack/
+docs/superpowers/
