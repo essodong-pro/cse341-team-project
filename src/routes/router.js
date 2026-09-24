@@ -6,6 +6,12 @@ import {
     getSchedulesForTrip,
     getSchedulesForTripAndMonth
 } from "../controllers/schedules.js";
+    renderBookingForm,
+    processBookingRequest,
+    renderBookingConfirmation,
+    renderBookingsAdmin
+} from '../controllers/bookings.js';
+import apiRoutes from './api-routes.js';
 
 const router = Router();
 
@@ -32,6 +38,14 @@ router.get('/api/trips/:id', getTripById);
 // Schedules API (JSON)
 router.get('/api/trips/:id/schedules',getSchedulesForTrip);
 router.get('/api/trips/:id/schedules/month',getSchedulesForTripAndMonth);
+// Booking pages (EJS)
+router.get('/bookings/new/:scheduleId', renderBookingForm);
+router.post('/bookings', processBookingRequest);
+router.get('/bookings/:bookingId', renderBookingConfirmation);
+router.get('/bookings-admin', renderBookingsAdmin);
+
+// Additional Swagger-documented API routes (e.g. bookings)
+router.use('/api', apiRoutes);
 
 // Test 500 error page
 router.get('/500', testErrorPage);

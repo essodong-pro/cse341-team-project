@@ -88,8 +88,70 @@ const hookTrainsCatalog = async () => {
     }
 };
 
+const hookBookingsCatalog = async () => {
+    const listEl = document.getElementById('bookings-list');
+    const templateEl = document.getElementById('booking-card-template');
+    const loadingEl = document.getElementById('bookings-loading');
+    const errorEl = document.getElementById('bookings-error');
+
+    if (!listEl || !templateEl) {
+        return;
+    }
+
+    try {
+        const [bookingsResponse, tripsResponse] = await Promise.all([
+            fetch('/api/bookings'),
+            fetch('/api/trips')
+        ]);
+
+        if (!bookingsResponse.ok) {
+            throw new Error(`Failed to load bookings (${bookingsResponse.status})`);
+        }
+        if (!tripsResponse.ok) {
+            throw new Error(`Failed to load trips (${tripsResponse.status})`);
+        }
+
+        const bookings = await bookingsResponse.json();
+        const trips = await tripsResponse.json();
+        const tripNamesById = new Map(trips.map((trip) => [trip.id, trip.name]));
+        const fragment = document.createDocumentFragment();
+
+        bookings.forEach((booking) => {
+            const card = templateEl.content.cloneNode(true);
+            const dayLabel = booking.selectedDay
+                ? booking.selectedDay.charAt(0).toUpperCase() + booking.selectedDay.slice(1)
+                : '';
+
+            card.querySelector('[data-field="id"]').textContent = booking.id;
+            card.querySelector('[data-field="ticketClass"]').textContent = booking.ticketClass;
+            card.querySelector('[data-field="totalPrice"]').textContent = `¥${Number(booking.totalPrice).toLocaleString()}`;
+            card.querySelector('[data-field="tripName"]').textContent = tripNamesById.get(booking.tripId) || booking.tripId;
+            card.querySelector('[data-field="selectedDay"]').textContent = dayLabel;
+            card.querySelector('[data-field="passengerCount"]').textContent = (booking.passengers || []).length;
+            card.querySelector('[data-field="createdAt"]').textContent = new Date(booking.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            card.querySelector('[data-field="viewLink"]').href = `/bookings/${booking.id}`;
+
+            fragment.appendChild(card);
+        });
+
+        listEl.replaceChildren(fragment);
+        if (loadingEl) {
+            loadingEl.hidden = true;
+        }
+    } catch (error) {
+        if (loadingEl) {
+            loadingEl.hidden = true;
+        }
+        if (errorEl) {
+            errorEl.hidden = false;
+            errorEl.textContent = 'Unable to load bookings right now. Please try again in a moment.';
+        }
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     hookRegionSorter();
     hookSeasonSorter();
     hookTrainsCatalog();
+    hookBookingsCatalog();
 });

@@ -13,6 +13,9 @@ import {
     getSchedulesForTrip,
     getSchedulesForTripAndMonth
 } from "../controllers/schedules.js";
+    getAllBookings,
+    getBookingById
+} from "../controllers/bookings.js";
 
 const router = express.Router();
 
@@ -96,6 +99,22 @@ router.get(
  * /api/trips/{id}/schedules?month={month}:
  *   get:
  *     summary: Returns schedules for a trip and month
+ * /api/bookings:
+ *   get:
+ *     summary: Returns all bookings
+ *     responses:
+ *       200:
+ *         description: A list of bookings
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bookings", getAllBookings);
+
+/**
+ * @swagger
+ * /api/bookings/{id}:
+ *   get:
+ *     summary: Returns a booking by ID
  *     parameters:
  *       - in: path
  *         name: id
@@ -115,5 +134,14 @@ router.get(
     "/trips/:id/schedules/month",
     getSchedulesForTripAndMonth
 );
+ *     responses:
+ *       200:
+ *         description: A single booking object
+ *       404:
+ *         description: Booking not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bookings/:id", getBookingById);
 
 export default router;
