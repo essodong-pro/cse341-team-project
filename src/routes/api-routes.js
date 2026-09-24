@@ -10,6 +10,9 @@ import {
 } from "../controllers/trips.js";
 
 import {
+    getSchedulesForTrip,
+    getSchedulesForTripAndMonth
+} from "../controllers/schedules.js";
     getAllBookings,
     getBookingById
 } from "../controllers/bookings.js";
@@ -74,6 +77,28 @@ router.get("/trips/:id", getTripById);
 
 /**
  * @swagger
+ * /api/trips/{id}/schedules:
+ *   get:
+ *     summary: Returns schedules for a trip
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of schedules
+ */
+router.get(
+    "/trips/:id/schedules",
+    getSchedulesForTrip
+);
+/**
+ * @swagger
+ * /api/trips/{id}/schedules?month={month}:
+ *   get:
+ *     summary: Returns schedules for a trip and month
  * /api/bookings:
  *   get:
  *     summary: Returns all bookings
@@ -96,6 +121,19 @@ router.get("/bookings", getAllBookings);
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: month
+ *         required: false
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: List of schedules
+ */
+router.get(
+    "/trips/:id/schedules/month",
+    getSchedulesForTripAndMonth
+);
  *     responses:
  *       200:
  *         description: A single booking object

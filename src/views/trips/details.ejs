@@ -63,14 +63,14 @@
             <h2>Operating Schedule</h2>
             <div class="months-grid">
                 <% details.operatingMonths.forEach(function(month) { %>
-                <span class="month-badge"><%= month %></span>
+                <span class="month-badge" data-month="<%= month %>"><%= month %></span>
                 <% }); %>
             </div>
-        </div>
-
-        <% if (details.schedules && details.schedules.length > 0) { %>
+        </div>      
         <div class="route-schedules">
             <h2>Available Schedules</h2>
+            <div id="schedules-container" class="schedules-grid">
+                Loading schedules...
             <div class="schedules-grid">
                 <% details.schedules.forEach(function(schedule) { %>
                 <div class="schedule-card">
@@ -95,8 +95,49 @@
                 <% }); %>
             </div>
         </div>
-        <% } %>
     </div>
 </article>
+<script>
+    async function loadSchedules(month) {
+        const tripId = "<%= details.id %>";
+        let url = `/api/trips/${tripId}/schedules`;
 
+        if (month) {
+            url = `/api/trips/${tripId}/schedules/month?month=${month}`;
+        }
+
+        const response = await fetch(url);
+        const schedules = await response.json();
+        const container = document.getElementById("schedules-container");
+        container.innerHTML = schedules.map(schedule => `
+        <div class="schedule-card">
+        <div class="schedule-times">
+        <div class="time-block">
+        <span class="time-label">Departs</span>
+        <span class="time-value">${schedule.departureTime}</span>
+        </div>
+
+        <span class="time-arrow">→</span>
+
+        <div class="time-block">
+        <span class="time-label">Arrives</span>
+        <span class="time-value">${schedule.arrivalTime}</span>
+        </div>
+        </div>
+
+        <div class="schedule-days">
+        ${schedule.daysOfWeek.join(", ")}
+        </div>
+
+        <a href="/trips/booking/${schedule.id}" class="book-button">Book Now</a>
+        </div>
+        `).join("");
+    }
+    document.querySelectorAll(".month-badge").forEach(badge => {
+        badge.addEventListener("click", () => {
+            loadSchedules(badge.dataset.month);
+        });
+    });
+    loadSchedules();
+</script>
 <%- include('../partials/footer') %>

@@ -3,6 +3,9 @@ import { homePage, aboutPage, testErrorPage } from './index.js';
 import { trainsApi, trainsPage } from './trains.js';
 import { renderTripsList, renderTripDetails, getAllTrips, getTripById } from '../controllers/trips.js';
 import {
+    getSchedulesForTrip,
+    getSchedulesForTripAndMonth
+} from "../controllers/schedules.js";
     renderBookingForm,
     processBookingRequest,
     renderBookingConfirmation,
@@ -32,6 +35,9 @@ router.get('/trips/:id', renderTripDetails);
 router.get('/api/trips', getAllTrips);
 router.get('/api/trips/:id', getTripById);
 
+// Schedules API (JSON)
+router.get('/api/trips/:id/schedules',getSchedulesForTrip);
+router.get('/api/trips/:id/schedules/month',getSchedulesForTripAndMonth);
 // Booking pages (EJS)
 router.get('/bookings/new/:scheduleId', renderBookingForm);
 router.post('/bookings', processBookingRequest);
