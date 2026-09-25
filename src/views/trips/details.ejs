@@ -71,28 +71,6 @@
             <h2>Available Schedules</h2>
             <div id="schedules-container" class="schedules-grid">
                 Loading schedules...
-            <div class="schedules-grid">
-                <% details.schedules.forEach(function(schedule) { %>
-                <div class="schedule-card">
-                    <div class="schedule-times">
-                        <div class="time-block">
-                            <span class="time-label">Departs</span>
-                            <span class="time-value"><%= schedule.departureTime %></span>
-                        </div>
-                        <span class="time-arrow">→</span>
-                        <div class="time-block">
-                            <span class="time-label">Arrives</span>
-                            <span class="time-value"><%= schedule.arrivalTime %></span>
-                        </div>
-                    </div>
-                    <div class="schedule-days">
-                        <% schedule.daysOfWeek.forEach(function(day) { %>
-                        <span class="day-badge"><%= day.substring(0, 3) %></span>
-                        <% }); %>
-                    </div>
-                    <a href="/bookings/new/<%= schedule.id %>" class="book-btn">Book Now</a>
-                </div>
-                <% }); %>
             </div>
         </div>
     </div>
@@ -106,9 +84,15 @@
             url = `/api/trips/${tripId}/schedules/month?month=${month}`;
         }
 
-        const response = await fetch(url);
-        const schedules = await response.json();
         const container = document.getElementById("schedules-container");
+        const response = await fetch(url);
+        const schedules = response.ok ? await response.json() : [];
+
+        if (!schedules.length) {
+            container.innerHTML = "<p>No schedules available.</p>";
+            return;
+        }
+
         container.innerHTML = schedules.map(schedule => `
         <div class="schedule-card">
         <div class="schedule-times">
@@ -126,10 +110,10 @@
         </div>
 
         <div class="schedule-days">
-        ${schedule.daysOfWeek.join(", ")}
+        ${schedule.daysOfWeek.map(day => `<span class="day-badge">${day.substring(0, 3)}</span>`).join("")}
         </div>
 
-        <a href="/trips/booking/${schedule.id}" class="book-button">Book Now</a>
+        <a href="/bookings/new/${schedule.id}" class="book-btn">Book Now</a>
         </div>
         `).join("");
     }
