@@ -9,7 +9,7 @@ import routes from './src/routes/router.js';
 import swaggerSpec from './src/docs/swagger.js';
 import {loadSessionUser } from "./src/middleware/auth.js";
 
-const SESSION_SECRET = process.env.SESSION_SECRET;
+const SESSION_SECRET = process.env.SESSION_SECRET || "test-session-secret";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = Path.dirname(__filename);
 

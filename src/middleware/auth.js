@@ -1,7 +1,7 @@
 export const loadSessionUser = (req, res, next) => {
   req.user = req.session.user || null;
   res.locals.user = req.user;
-  next();
+  return next();
 };
 
 const isLoggedIn = (req) => {
@@ -19,7 +19,7 @@ export const requireApiLogin = (req, res, next) => {
       .json({ message: "Authentication required" });
   }
 
-  next();
+   return next();
 };
 
 export const requirePageLogin = (req, res, next) => {
@@ -27,7 +27,7 @@ export const requirePageLogin = (req, res, next) => {
     return res.redirect("/login");
   }
 
-  next();
+  return next();
 };
 
 export const requireApiRole = (role) => {
@@ -44,7 +44,7 @@ export const requireApiRole = (role) => {
         .json({ message: "Forbidden" });
     }
 
-    next();
+    return next();
   };
 };
 
@@ -62,6 +62,6 @@ export const requirePageRole = (role) => {
       });
     }
 
-    next();
+    return next();
   };
 };
