@@ -1,3 +1,4 @@
+import session from "express-session";
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import Path from 'path';
@@ -6,7 +7,9 @@ import pkg from './package.json' with { type: 'json' };
 import globalMiddleware from './src/middleware/global.js';
 import routes from './src/routes/router.js';
 import swaggerSpec from './src/docs/swagger.js';
+import {loadSessionUser } from "./src/middleware/auth.js";
 
+const SESSION_SECRET = process.env.SESSION_SECRET || "test-session-secret";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = Path.dirname(__filename);
 
@@ -27,7 +30,9 @@ app.set('views', Path.join(__dirname, 'src/views'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.use(globalMiddleware);
+app.use(session({secret: SESSION_SECRET, resave: false, saveUninitialized: false, rolling: true, cookie: { maxAge: 60 * 60 * 1000}}));
+app.use(loadSessionUser); 
+app.use(globalMiddleware);  
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/', routes);
 
