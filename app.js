@@ -9,7 +9,17 @@ import routes from './src/routes/router.js';
 import swaggerSpec from './src/docs/swagger.js';
 import {loadSessionUser } from "./src/middleware/auth.js";
 
-const SESSION_SECRET = process.env.SESSION_SECRET || "test-session-secret";
+
+const SESSION_SECRET =
+process.env.SESSION_SECRET ||
+    (process.env.NODE_ENV === "test"
+        ? "test-session-secret"
+        : null);
+
+if (!SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required.");
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = Path.dirname(__filename);
 
@@ -45,12 +55,16 @@ app.use((req, res, next) => {
 
 // Render the appropriate error page.
 app.use((err, req, res, next) => {
+    console.error(err);
+
     const status = err.status || 500;
     const template = status === 404 ? '404' : '500';
+    
     const context = {
         title: status === 404 ? 'Page Not Found' : 'Server Error',
-        error: err.message,
-        stack: err.stack
+        error: status === 404
+            ? err.message
+            : 'An unexpected error occurred.'
     };
 
     return res.status(status).render(`errors/${template}`, context);

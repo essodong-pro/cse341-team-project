@@ -24,10 +24,16 @@ export async function register(req, res) {
   } catch (error) {
     console.error("Registration error:", error);
 
+    if (error.code === 11000) {
+      return res.status(409).render("register", {
+        title: "Register",
+        error: "A user with that email or username already exists."
+      });
+    }
+
     return res.status(500).render("errors/500", {
       title: "Registration Error",
-      error: error.message,
-      stack: error.stack,
+      error: "An unexpected error occurred."
     });
   }
 }
@@ -40,8 +46,8 @@ export async function login(req, res) {
 
     if (!user) {
       return res.status(401).render("login", {
-      title: "Login",
-      error: "Invalid email or password",
+        title: "Login",
+        error: "Invalid email or password",
     });
 }
 
@@ -53,8 +59,8 @@ export async function login(req, res) {
 
     if (!passwordMatches) {
       return res.status(401).render("login", {
-      title: "Login",
-      error: "Invalid email or password",
+        title: "Login",
+        error: "Invalid email or password",
     });
 }
 
@@ -70,8 +76,7 @@ export async function login(req, res) {
 
     return res.status(500).render("errors/500", {
       title: "Login Error",
-      error: error.message,
-      stack: error.stack,
+      error: "An unexpected error occurred."
     });
   }
 }
