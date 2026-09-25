@@ -10,9 +10,16 @@ import {
 } from "../controllers/trips.js";
 
 import {
+    getAllTicketClasses,
+    getTicketClassesForDay
+} from "../controllers/ticket-classes.js";
+
+import {
     getSchedulesForTrip,
     getSchedulesForTripAndMonth
 } from "../controllers/schedules.js";
+
+import {
     getAllBookings,
     getBookingById
 } from "../controllers/bookings.js";
@@ -77,6 +84,40 @@ router.get("/trips/:id", getTripById);
 
 /**
  * @swagger
+ * /api/ticket-classes:
+ *   get:
+ *     summary: Returns ticket classes
+ *     parameters:
+ *       - in: query
+ *         name: day
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - monday
+ *             - tuesday
+ *             - wednesday
+ *             - thursday
+ *             - friday
+ *             - saturday
+ *             - sunday
+ *         description: Return only ticket classes available on the selected day.
+ *     responses:
+ *       200:
+ *         description: A list of ticket classes
+ *       400:
+ *         description: Invalid day
+ */
+router.get("/ticket-classes", (req, res, next) => {
+    if (req.query.day) {
+        return getTicketClassesForDay(req, res, next);
+    }
+
+    return getAllTicketClasses(req, res, next);
+});
+
+/**
+ * @swagger
  * /api/trips/{id}/schedules:
  *   get:
  *     summary: Returns schedules for a trip
@@ -94,11 +135,34 @@ router.get(
     "/trips/:id/schedules",
     getSchedulesForTrip
 );
+
 /**
  * @swagger
- * /api/trips/{id}/schedules?month={month}:
+ * /api/trips/{id}/schedules/month:
  *   get:
  *     summary: Returns schedules for a trip and month
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: month
+ *         required: false
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: List of schedules
+ */
+router.get(
+    "/trips/:id/schedules/month",
+    getSchedulesForTripAndMonth
+);
+
+/**
+ * @swagger
  * /api/bookings:
  *   get:
  *     summary: Returns all bookings
@@ -121,19 +185,6 @@ router.get("/bookings", getAllBookings);
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: month
- *         required: false
- *         schema:
- *           type: number
- *     responses:
- *       200:
- *         description: List of schedules
- */
-router.get(
-    "/trips/:id/schedules/month",
-    getSchedulesForTripAndMonth
-);
  *     responses:
  *       200:
  *         description: A single booking object

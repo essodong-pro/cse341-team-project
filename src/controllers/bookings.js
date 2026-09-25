@@ -5,7 +5,7 @@ import {
     getBookingById as fetchBookingById
 } from "../models/bookings.js";
 import { getTripById as fetchTripById } from "../models/trips.js";
-
+import { getAllTicketClasses } from "../models/ticket-classes.js";
 // ==========================
 // API CONTROLLERS
 // ==========================
@@ -79,7 +79,7 @@ export async function renderBookingForm(req, res) {
         });
     }
 
-    const ticketClasses = await db.collection('ticketClasses').find({}).toArray();
+    const ticketClasses = await getAllTicketClasses();
     const ticketOptions = ticketClasses.map((ticketClass) => ({
         class: ticketClass.class,
         name: ticketClass.name,
