@@ -40,31 +40,36 @@ export async function login(req, res) {
 
     if (!user) {
       return res.status(401).render("login", {
-      title: "Login",
-      error: "Invalid email or password",
-    });
-}
+        title: "Login",
+        error: "Invalid email or password",
+      });
+    }
 
-    const passwordMatches =
-      await verifyPassword(
-        password,
-        user.passwordHash
-      );
+    const passwordMatches = await verifyPassword(
+      password,
+      user.passwordHash
+    );
 
     if (!passwordMatches) {
       return res.status(401).render("login", {
-      title: "Login",
-      error: "Invalid email or password",
-    });
-}
+        title: "Login",
+        error: "Invalid email or password",
+      });
+    }
 
     req.session.user = {
       id: user._id.toString(),
+      displayName: user.displayName,
       username: user.username,
+      email: user.email,
       role: user.role.name,
     };
 
-    return res.redirect("/");
+    if (user.role.name === "admin") {
+      return res.redirect("/admin");
+    }
+
+    return res.redirect("/dashboard");
   } catch (error) {
     console.error("Login error:", error);
 
