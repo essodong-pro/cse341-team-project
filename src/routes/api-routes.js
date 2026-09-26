@@ -24,6 +24,14 @@ import {
     getBookingById
 } from "../controllers/bookings.js";
 
+import {
+    getUsers,
+    updateUserById,
+    deleteUserById
+} from "../controllers/users.js";
+import { requireApiLogin } from "../middleware/auth.js";
+import { requireApiSelfOrAdmin } from "../middleware/ownership.js";
+
 const router = express.Router();
 
 /**
@@ -194,5 +202,104 @@ router.get("/bookings", getAllBookings);
  *         description: Internal server error
  */
 router.get("/bookings/:id", getBookingById);
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Returns users visible to the signed-in user
+ *     description: Admins receive every user. Other users receive a list containing only their own record.
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: A list of users (password hashes are never included)
+ *       401:
+ *         description: Not logged in
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/users", requireApiLogin, getUsers);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   put:
+ *     summary: Updates a user
+ *     description: Any user can update their own record. Admins can update any user and change roles. The last admin cannot be demoted.
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               displayName:
+ *                 type: string
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [admin, customer]
+ *                 description: Admins only. Ignored for other users.
+ *     responses:
+ *       200:
+ *         description: The updated user
+ *       400:
+ *         description: Invalid id or invalid input
+ *       401:
+ *         description: Not logged in
+ *       403:
+ *         description: Not allowed to update this user
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: Email or username already in use, or this would remove the last admin
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/users/:id", requireApiLogin, requireApiSelfOrAdmin, updateUserById);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Deletes a user
+ *     description: Any user can delete their own account (their session is ended). Admins can delete any user. The last admin cannot be deleted.
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted. loggedOut is true when the user deleted their own account.
+ *       400:
+ *         description: Invalid user id
+ *       401:
+ *         description: Not logged in
+ *       403:
+ *         description: Not allowed to delete this user
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: This would remove the last admin
+ *       500:
+ *         description: Internal server error
+ */
+router.delete("/users/:id", requireApiLogin, requireApiSelfOrAdmin, deleteUserById);
 
 export default router;
