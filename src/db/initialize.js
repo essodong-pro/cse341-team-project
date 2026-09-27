@@ -3,6 +3,8 @@ import schedules from './seeds/schedules.json' with { type: 'json' };
 import stations from './seeds/stations.json' with { type: 'json' };
 import ticketClasses from './seeds/ticket-classes.json' with { type: 'json' };
 import trains from './seeds/trains.json' with { type: 'json' };
+import Role from "../models/schemas/role.js";
+
 
 const starterCollections = [
   ['trips', trips],
@@ -21,11 +23,19 @@ const initializeDatabase = async (db) => {
     const collection = db.collection(collectionName);
     await collection.deleteMany({});
     await collection.insertMany(documents);
+    
   }
+  await Role.deleteMany({});
 
+  await Role.insertMany([
+    { name: "admin" },
+    { name: "customer" }
+  ]);
+  
   const bookings = db.collection('bookings');
   await bookings.deleteMany({});
   await bookings.createIndex({ id: 1 }, { unique: true });
+
 };
 
 export { initializeDatabase, starterCollections };

@@ -1,8 +1,10 @@
 {
 	"name": "kizuna-rail-byui-demo",
 	"dependencies": {
+		"bcrypt": "^6.0.0",
 		"ejs": "^6.0.1",
 		"express": "^5.1.0",
+		"express-session": "^1.19.0",
 		"mongodb": "^7.5.0",
 		"mongoose": "^9.10.1",
 		"swagger-jsdoc": "^6.3.0",
