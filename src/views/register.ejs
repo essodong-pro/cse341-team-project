@@ -2,6 +2,11 @@
 
 <section class="auth-container">
     <h1>Create Account</h1>
+    <% if (typeof error !== 'undefined') { %>
+    <p style="color:red;">
+        <%= error %>
+    </p>
+    <% } %>
     <form action="/register" method="POST"> 
         <label>
             Display Name
