@@ -132,7 +132,9 @@ export async function updateUserById(req, res) {
     if (isSelf(req, target)) {
       req.session.user = {
         ...req.session.user,
+        displayName: updated.displayName,
         username: updated.username,
+        email: updated.email,
         role: updated.role,
       };
     }

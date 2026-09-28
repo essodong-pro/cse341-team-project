@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   countUsersWithRole,
   deleteUser,
@@ -10,9 +10,16 @@ import { createTestUser, ensureUserIndexes, loginAs } from './helpers/auth.js';
 import { requireApiSelfOrAdmin } from '../src/middleware/ownership.js';
 import request from 'supertest';
 import app from '../app.js';
+import User from '../src/models/schemas/user.js';
 
 const ada = { displayName: 'Ada Lovelace', username: 'ada', email: 'ada@example.com' };
 const grace = { displayName: 'Grace Hopper', username: 'grace', email: 'grace@example.com' };
+
+// initializeDatabase seeds demo admin/customer accounts; start each test with
+// only the users it creates so counts and last-admin rules are predictable.
+beforeEach(async () => {
+  await User.deleteMany({});
+});
 
 describe('user model functions', () => {
   test('getAllUsers returns public users with the role name and no password hash', async () => {
@@ -166,6 +173,20 @@ describe('PUT /api/users/:id', () => {
     expect(response.status).toBe(200);
     expect(response.body.displayName).toBe('Countess Ada');
     expect(response.body).not.toHaveProperty('passwordHash');
+  });
+
+  test('refreshes the session when a user updates their own name and email', async () => {
+    const adaId = await createTestUser(ada);
+    const agent = await loginAs(ada.email);
+
+    const response = await agent
+      .put(`/api/users/${adaId}`)
+      .send({ displayName: 'Countess Ada', email: 'countess@example.com' });
+    expect(response.status).toBe(200);
+
+    const dashboard = await agent.get('/dashboard');
+    expect(dashboard.text).toContain('Welcome, Countess Ada!');
+    expect(dashboard.text).toContain('data-user-email="countess@example.com"');
   });
 
   test('returns 403 when a customer updates someone else', async () => {
