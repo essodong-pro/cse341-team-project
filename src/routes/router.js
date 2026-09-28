@@ -19,6 +19,8 @@ import { register, login, logout } from "../controllers/auth.js";
 
 import { requirePageLogin, requirePageRole } from "../middleware/auth.js";
 
+import { renderUsersAdmin } from '../controllers/users.js';
+
 import apiRoutes from './api-routes.js';
 
 const router = Router();
@@ -50,6 +52,8 @@ router.post('/bookings', processBookingRequest);
 router.get('/bookings/:bookingId', renderBookingConfirmation);
 
 router.get('/bookings-admin', renderBookingsAdmin);
+
+router.get('/users-admin', requirePageLogin, renderUsersAdmin);
 
 router.get('/register', (req, res) => {
     return res.render('register', {

@@ -1,0 +1,109 @@
+<%- include('./partials/header') %>
+
+<section class="users-hero">
+    <h1>User Admin</h1>
+    <p>
+        <% if (user.role === 'admin') { %>
+            Manage every account on the Kizuna Rail network.
+        <% } else { %>
+            Review and update your account information.
+        <% } %>
+    </p>
+</section>
+
+<section
+    class="users-catalog"
+    id="users-admin"
+    data-current-user-id="<%= user.id %>"
+    data-current-user-role="<%= user.role %>"
+>
+    <p class="users-message" id="users-message" role="status" aria-live="polite" tabindex="-1" hidden></p>
+    <div class="users-state" id="users-loading">Loading users...</div>
+    <div class="users-state users-error" id="users-error" hidden></div>
+
+    <div class="users-grid" id="users-list"></div>
+
+    <template id="user-card-template">
+        <article class="user-card" data-user-id="">
+            <div class="user-card-header">
+                <h2 data-field="displayName"></h2>
+                <span class="user-role" data-field="role"></span>
+            </div>
+
+            <dl class="user-specs">
+                <div class="spec-item">
+                    <dt>Username</dt>
+                    <dd data-field="username"></dd>
+                </div>
+                <div class="spec-item">
+                    <dt>Email</dt>
+                    <dd data-field="email"></dd>
+                </div>
+                <div class="spec-item">
+                    <dt>Member Since</dt>
+                    <dd data-field="createdAt"></dd>
+                </div>
+            </dl>
+
+            <div class="user-actions">
+                <button type="button" class="user-button" data-action="edit">Edit</button>
+                <button type="button" class="user-button user-button-danger" data-action="delete">Delete</button>
+            </div>
+        </article>
+    </template>
+
+    <template id="user-edit-template">
+        <form class="user-card user-edit-form" data-user-id="">
+            <label>
+                Display Name
+                <input name="displayName" required>
+            </label>
+            <label>
+                Username
+                <input name="username" required>
+            </label>
+            <label>
+                Email
+                <input name="email" type="email" required>
+            </label>
+            <label data-admin-only>
+                Role
+                <select name="role">
+                    <option value="customer">Customer</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </label>
+
+            <p class="users-error" data-field="formError" hidden></p>
+
+            <div class="user-actions">
+                <button type="submit" class="user-button">Save</button>
+                <button type="button" class="user-button user-button-secondary" data-action="cancel">Cancel</button>
+            </div>
+        </form>
+    </template>
+
+    <dialog class="delete-dialog" id="delete-dialog" aria-labelledby="delete-dialog-title">
+        <form method="dialog">
+            <h2 id="delete-dialog-title">Delete account?</h2>
+            <p data-field="dialogBody"></p>
+
+            <div class="delete-dialog-warning" data-field="selfWarning" role="alert" hidden>
+                <strong>&#9888; This is your own account.</strong>
+                <span>
+                    If you continue, your account is deleted permanently, you will be
+                    logged out immediately, and you will be redirected to the home page.
+                </span>
+            </div>
+
+            <div class="user-actions">
+                <button type="submit" value="cancel" class="user-button user-button-secondary" autofocus>Cancel</button>
+                <button type="submit" value="confirm" class="user-button user-button-danger">Delete</button>
+            </div>
+        </form>
+    </dialog>
+</section>
+
+<script src="/js/users-admin.js"></script>
+
+<%- include('./partials/footer') %>
