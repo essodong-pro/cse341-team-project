@@ -1,0 +1,73 @@
+<%- include('partials/header') %>
+
+    <section id="user-dashboard" class="content" data-user-email="<%= user.email %>">
+        <h1>Welcome, <%= user.displayName || user.username %>!</h1>
+
+        <p>
+            Welcome to your Kizuna Rail dashboard.
+            Here you can view your bookings and manage your account.
+        </p>
+
+        <div>
+            <a href="/bookings-admin">Booking Admin</a>
+            <a href="/admin">User Admin</a>
+        </div>
+
+        <section>
+            <h2>My Bookings</h2>
+
+            <p id="user-bookings-loading">
+                Loading your bookings...
+            </p>
+
+            <p id="user-bookings-error" hidden></p>
+
+            <p id="user-bookings-empty" hidden>
+                You do not have any bookings yet.
+            </p>
+
+            <div id="user-bookings-list"></div>
+
+            <template id="user-booking-card-template">
+                <article>
+                    <h3>
+                        Booking <span data-field="id"></span>
+                    </h3>
+
+                    <p>
+                        <strong>Trip:</strong>
+                        <span data-field="tripName"></span>
+                    </p>
+
+                    <p>
+                        <strong>Ticket Class:</strong>
+                        <span data-field="ticketClass"></span>
+                    </p>
+
+                    <p>
+                        <strong>Travel Day:</strong>
+                        <span data-field="selectedDay"></span>
+                    </p>
+
+                    <p>
+                        <strong>Passengers:</strong>
+                        <span data-field="passengerCount"></span>
+                    </p>
+
+                    <p>
+                        <strong>Total Price:</strong>
+                        <span data-field="totalPrice"></span>
+                    </p>
+
+                    <a data-field="viewLink" href="#">
+                        View Booking
+                    </a>
+                </article>
+            </template>
+        </section>
+    </section>
+
+    </main>
+    </body>
+
+    </html>
