@@ -20,13 +20,103 @@
 .bookings-catalog {
     display: block;
 
+    .bookings-filters {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+        margin-bottom: var(--space-lg);
+        padding: var(--space-lg);
+        border: 1px solid #b7c4e8;
+        border-radius: var(--radius-lg);
+        background: #ffffff;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .bookings-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+
+        label {
+            color: var(--clr-text-primary);
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+        }
+
+        select,
+        input {
+            width: 100%;
+            min-height: 42px;
+            padding: var(--space-sm);
+            border: 1px solid #b7c4e8;
+            border-radius: var(--radius-sm);
+            background-color: #ffffff;
+            color: var(--clr-text-primary);
+            font: inherit;
+        }
+
+        select:focus,
+        input:focus {
+            outline: 2px solid var(--clr-primary);
+            outline-offset: 1px;
+        }
+    }
+
+    .bookings-filter-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+
+    .bookings-filter-button,
+    .bookings-clear-button {
+        min-height: 42px;
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--radius-md);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .bookings-filter-button {
+        border: 1px solid var(--clr-primary);
+        background-color: var(--clr-primary);
+        color: var(--clr-text-alt-primary);
+
+        &:hover {
+            background-color: var(--clr-accent);
+            box-shadow: var(--shadow-sm);
+        }
+    }
+
+    .bookings-clear-button {
+        border: 1px solid #b7c4e8;
+        background-color: #ffffff;
+        color: var(--clr-text-primary);
+
+        &:hover {
+            background-color: #eef3ff;
+            box-shadow: var(--shadow-sm);
+        }
+    }
+
     .bookings-state {
         margin-bottom: var(--space-md);
         color: var(--clr-text-secondary);
     }
 
-    .bookings-error {
+    .bookings-error,
+    .bookings-filter-error {
         color: #8f1f1f;
+    }
+
+    .bookings-filter-error {
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid #e4b4b4;
+        border-radius: var(--radius-sm);
+        background-color: #fff3f3;
     }
 
     .bookings-grid {
@@ -121,10 +211,59 @@
             }
         }
     }
+
+    .bookings-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: var(--space-md);
+        margin-top: var(--space-xl);
+        padding: var(--space-md) 0;
+    }
+
+    .bookings-pagination-button {
+        min-width: 90px;
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--clr-primary);
+        border-radius: var(--radius-md);
+        background-color: var(--clr-primary);
+        color: var(--clr-text-alt-primary);
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:hover:not(:disabled) {
+            background-color: var(--clr-accent);
+            box-shadow: var(--shadow-sm);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    .bookings-page-status {
+        min-width: 100px;
+        text-align: center;
+        color: var(--clr-text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+    }
 }
 
 @media (min-width: 768px) {
     .bookings-catalog {
+        .bookings-filters {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            align-items: end;
+        }
+
+        .bookings-filter-actions {
+            grid-column: 1 / -1;
+        }
+
         .bookings-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
