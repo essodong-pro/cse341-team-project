@@ -207,7 +207,7 @@ router.get("/bookings/:id", getBookingById);
  * @swagger
  * /api/users:
  *   get:
- *     summary: Returns a page of users visible to the signed-in user
+ *     summary: Returns a page of users, optionally searched and filtered by role
  *     description: Admins can page through every user. Other users only ever receive their own record. Results are sorted by username by default.
  *     security:
  *       - cookieAuth: []
@@ -239,6 +239,19 @@ router.get("/bookings/:id", getBookingById);
  *           type: string
  *           enum: [asc, desc]
  *           default: asc
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *         description: Searches display name, username, and email as a whole-word phrase, case-insensitive (e.g. "lovelace" or "ada@example.com"). Common words like "the" are ignored.
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Only return users with this role.
  *     responses:
  *       200:
  *         description: A page of users (password hashes are never included) with the query that ran and pagination metadata
@@ -254,6 +267,8 @@ router.get("/bookings/:id", getBookingById);
  *               query:
  *                 sort: username
  *                 order: asc
+ *                 q: lovelace
+ *                 role: customer
  *               pagination:
  *                 page: 1
  *                 limit: 10
@@ -262,7 +277,7 @@ router.get("/bookings/:id", getBookingById);
  *                 hasNextPage: true
  *                 hasPreviousPage: false
  *       400:
- *         description: Invalid page, limit, sort, or order
+ *         description: Invalid page, limit, sort, order, q, or role
  *         content:
  *           application/json:
  *             example:

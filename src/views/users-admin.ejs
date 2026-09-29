@@ -17,11 +17,32 @@
     data-current-user-id="<%= user.id %>"
     data-current-user-role="<%= user.role %>"
 >
+    <form class="users-filters" id="users-filters" role="search" hidden>
+        <label>
+            Search
+            <input type="search" name="q" maxlength="100" placeholder="Name, username, or email">
+        </label>
+        <label>
+            Role
+            <select name="role">
+                <option value="">All roles</option>
+                <option value="admin">Admin</option>
+                <option value="customer">Customer</option>
+            </select>
+        </label>
+        <div class="user-actions">
+            <button type="submit" class="user-button">Search</button>
+            <button type="reset" class="user-button user-button-secondary">Clear</button>
+        </div>
+    </form>
+
     <p class="users-message" id="users-message" role="status" aria-live="polite" tabindex="-1" hidden></p>
     <div class="users-state" id="users-loading">Loading users...</div>
     <div class="users-state users-error" id="users-error" hidden></div>
 
     <div class="users-grid" id="users-list"></div>
+
+    <p class="users-state users-empty" id="users-empty" role="status"></p>
 
     <nav class="users-pagination" id="users-pagination" aria-label="User list pages" hidden>
         <button type="button" class="user-button" data-page-action="previous">Previous</button>

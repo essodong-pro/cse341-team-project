@@ -321,6 +321,148 @@ describe('GET /api/users pagination', () => {
   });
 });
 
+describe('GET /api/users search and filters', () => {
+  let agent;
+
+  // Each test starts from a dropped database, so rebuild the text index.
+  beforeEach(async () => {
+    await ensureUserIndexes();
+    await createTestUser(ada);
+    await createTestUser({ ...grace, role: 'admin' });
+    await createTestUser(alan);
+    agent = await loginAs(grace.email);
+  });
+
+  test('q matches a word in the display name', async () => {
+    const response = await agent.get('/api/users?q=lovelace');
+
+    expect(response.status).toBe(200);
+    expect(usernames(response)).toEqual(['ada']);
+  });
+
+  test('q matches a username', async () => {
+    const response = await agent.get('/api/users?q=aturing');
+
+    expect(usernames(response)).toEqual(['aturing']);
+  });
+
+  test('q matches a full email address and not others on the same domain', async () => {
+    const response = await agent.get(`/api/users?q=${encodeURIComponent('grace@example.com')}`);
+
+    expect(usernames(response)).toEqual(['grace']);
+  });
+
+  test('q is case-insensitive', async () => {
+    const response = await agent.get('/api/users?q=HOPPER');
+
+    expect(usernames(response)).toEqual(['grace']);
+  });
+
+  test('role filters by role name', async () => {
+    const admins = await agent.get('/api/users?role=admin');
+    const customers = await agent.get('/api/users?role=customer');
+
+    expect(usernames(admins)).toEqual(['grace']);
+    expect(usernames(customers)).toEqual(['ada', 'aturing']);
+  });
+
+  test('q and role work together', async () => {
+    const response = await agent.get('/api/users?q=example&role=customer');
+
+    expect(usernames(response)).toEqual(['ada']);
+  });
+
+  test('echoes the applied query, with q trimmed', async () => {
+    const response = await agent.get(`/api/users?q=${encodeURIComponent('  Lovelace ')}&role=customer`);
+
+    expect(response.body.query).toEqual({ sort: 'username', order: 'asc', q: 'Lovelace', role: 'customer' });
+  });
+
+  test('no matches returns 200 with an empty list', async () => {
+    const response = await agent.get('/api/users?q=nobody');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      totalItems: 0,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
+  });
+
+  test('pagination counts only the filtered results', async () => {
+    await insertUsers(12);
+
+    const response = await agent.get('/api/users?role=customer');
+
+    // ada + aturing + user01..user12
+    expect(response.body.data).toHaveLength(10);
+    expect(response.body.pagination).toMatchObject({ totalItems: 14, totalPages: 2, hasNextPage: true });
+  });
+
+  test('search text with no real words returns 200 with an empty list, not an error', async () => {
+    const symbols = await agent.get(`/api/users?q=${encodeURIComponent('@@@')}`);
+    const dots = await agent.get('/api/users?q=...');
+
+    expect(symbols.status).toBe(200);
+    expect(symbols.body.data).toEqual([]);
+    expect(dots.status).toBe(200);
+    expect(dots.body.data).toEqual([]);
+  });
+
+  test('a trailing backslash is stripped before the search runs', async () => {
+    const response = await agent.get(`/api/users?q=${encodeURIComponent('ada\\')}`);
+
+    expect(usernames(response)).toEqual(['ada']);
+    expect(response.body.query.q).toBe('ada');
+  });
+
+  test('a hyphen in the search text is not treated as a NOT operator', async () => {
+    const response = await agent.get(`/api/users?q=${encodeURIComponent('ada -lovelace')}`);
+
+    expect(usernames(response)).toEqual([]);
+  });
+
+  test('accepts q at the maximum length of 100 characters', async () => {
+    const response = await agent.get(`/api/users?q=${'a'.repeat(100)}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  test.each([
+    ['role=superuser', 'role'],
+    ['role=admin&role=customer', 'role'],
+    ['q=', 'q'],
+    ['q=%20%20', 'q'],
+    ['q=%22%22', 'q'],
+    [`q=${'a'.repeat(101)}`, 'q'],
+    ['q=a&q=b', 'q'],
+    ['q=%5C%5C', 'q']
+  ])('returns 400 for %s', async (queryString, field) => {
+    const response = await agent.get(`/api/users?${queryString}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors.map((error) => error.field)).toEqual([field]);
+  });
+
+  test('a customer cannot use filters to find other users', async () => {
+    const customerAgent = await loginAs(ada.email);
+
+    const ownByQ = await customerAgent.get('/api/users?q=lovelace');
+    const ownByRole = await customerAgent.get('/api/users?role=customer');
+    const byRole = await customerAgent.get('/api/users?role=admin');
+    const byName = await customerAgent.get('/api/users?q=grace');
+
+    expect(usernames(ownByQ)).toEqual(['ada']);
+    expect(usernames(ownByRole)).toEqual(['ada']);
+    expect(byRole.body.data).toEqual([]);
+    expect(byName.body.data).toEqual([]);
+  });
+});
+
 describe('PUT /api/users/:id', () => {
   test('returns 401 when not logged in', async () => {
     const adaId = await createTestUser(ada);

@@ -39,6 +39,12 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// Powers the q search on GET /api/users (one text index per collection).
+userSchema.index(
+  { displayName: "text", username: "text", email: "text" },
+  { name: "user_text_search" }
+);
+
 const User = mongoose.model("User", userSchema);
 
 export default User;
