@@ -56,14 +56,30 @@ export function toPublicUser(user) {
   };
 }
 
-export async function getAllUsers() {
-  const users = await User.find({})
-    .select(PUBLIC_FIELDS)
-    .populate("role")
-    .sort({ displayName: 1 })
-    .lean();
+/**
+ * Returns one page of public users and how many users match the filter.
+ * The controller validates every option before calling this.
+ */
+export async function getPaginatedUsers({ filter = {}, page, limit, sort, order }) {
+  const skip = (page - 1) * limit;
+  const direction = order === "desc" ? -1 : 1;
+  // _id breaks ties so a user never shows up on two pages.
+  const sortOptions = { [sort]: direction, _id: direction };
 
-  return users.map(toPublicUser);
+  const [users, totalItems] = await Promise.all([
+    User.find(filter)
+      .select(PUBLIC_FIELDS)
+      .populate("role")
+      // Case-insensitive alphabetical order ("ada" before "Zed").
+      .collation({ locale: "en" })
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    User.countDocuments(filter),
+  ]);
+
+  return { users: users.map(toPublicUser), totalItems };
 }
 
 export async function getUserById(id) {

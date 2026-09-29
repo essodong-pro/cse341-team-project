@@ -23,6 +23,12 @@
 
     <div class="users-grid" id="users-list"></div>
 
+    <nav class="users-pagination" id="users-pagination" aria-label="User list pages" hidden>
+        <button type="button" class="user-button" data-page-action="previous">Previous</button>
+        <p class="users-page-status" id="users-page-status" aria-live="polite"></p>
+        <button type="button" class="user-button" data-page-action="next">Next</button>
+    </nav>
+
     <template id="user-card-template">
         <article class="user-card" data-user-id="">
             <div class="user-card-header">

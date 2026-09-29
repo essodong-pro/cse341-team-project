@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import {
   countUsersWithRole,
   deleteUser as deleteUserRecord,
-  getAllUsers as fetchAllUsers,
+  getPaginatedUsers as fetchPaginatedUsers,
   getUserById as fetchUserById,
   updateUser as updateUserRecord,
 } from "../models/users.js";
@@ -15,10 +15,75 @@ const MAX_FIELD_LENGTHS = { displayName: 100, username: 50, email: 254 };
 // Non-overlapping segments keep matching linear on hostile input.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 50;
+const DEFAULT_SORT = "username";
+const DEFAULT_ORDER = "asc";
+const ALLOWED_SORT_FIELDS = ["username", "displayName", "email", "createdAt"];
+const ALLOWED_ORDERS = ["asc", "desc"];
+
 const isAdmin = (req) => req.user.role === "admin";
 // target._id comes from toPublicUser as a lowercase hex string, so this
 // also catches an uppercase id in the URL.
 const isSelf = (req, target) => target._id === req.user.id;
+
+// Query values arrive as strings (or arrays when repeated); anything that is
+// not a whole number of 1 or more becomes null.
+const parsePositiveInteger = (value, defaultValue) => {
+  if (value === undefined) {
+    return defaultValue;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    return null;
+  }
+
+  return parsed;
+};
+
+/**
+ * Validates the list query for GET /api/users. Returns every problem at once
+ * so the client can fix them together.
+ */
+function parseUserListQuery(query) {
+  const errors = [];
+
+  const page = parsePositiveInteger(query.page, DEFAULT_PAGE);
+  if (page === null) {
+    errors.push({ field: "page", message: "page must be a whole number of 1 or more." });
+  }
+
+  const limit = parsePositiveInteger(query.limit, DEFAULT_LIMIT);
+  if (limit === null || limit > MAX_LIMIT) {
+    errors.push({ field: "limit", message: `limit must be a number between 1 and ${MAX_LIMIT}.` });
+  }
+
+  const sort = query.sort ?? DEFAULT_SORT;
+  if (!ALLOWED_SORT_FIELDS.includes(sort)) {
+    errors.push({ field: "sort", message: `sort must be one of: ${ALLOWED_SORT_FIELDS.join(", ")}.` });
+  }
+
+  const order = query.order ?? DEFAULT_ORDER;
+  if (!ALLOWED_ORDERS.includes(order)) {
+    errors.push({ field: "order", message: "order must be asc or desc." });
+  }
+
+  return { errors, options: { page, limit, sort, order } };
+}
+
+function buildPagination({ page, limit }, totalItems) {
+  return {
+    page,
+    limit,
+    totalItems,
+    totalPages: Math.ceil(totalItems / limit),
+    hasNextPage: page * limit < totalItems,
+    hasPreviousPage: page > 1,
+  };
+}
 
 // ==========================
 // API CONTROLLERS
@@ -26,15 +91,22 @@ const isSelf = (req, target) => target._id === req.user.id;
 
 export async function getUsers(req, res) {
   try {
-    if (isAdmin(req)) {
-      const users = await fetchAllUsers();
+    const { errors, options } = parseUserListQuery(req.query);
 
-      return res.status(200).json(users);
+    if (errors.length > 0) {
+      return res.status(400).json({ errors });
     }
 
-    const self = await fetchUserById(req.user.id);
+    // Non-admins go through the same query but can only ever match themselves.
+    const filter = isAdmin(req) ? {} : { _id: req.user.id };
 
-    return res.status(200).json(self ? [self] : []);
+    const { users, totalItems } = await fetchPaginatedUsers({ filter, ...options });
+
+    return res.status(200).json({
+      data: users,
+      query: { sort: options.sort, order: options.order },
+      pagination: buildPagination(options, totalItems),
+    });
   } catch (error) {
     console.error("Error fetching users:", error);
 

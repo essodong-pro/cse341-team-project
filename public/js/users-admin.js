@@ -12,13 +12,20 @@
     const cardTemplate = document.getElementById('user-card-template');
     const editTemplate = document.getElementById('user-edit-template');
     const deleteDialog = document.getElementById('delete-dialog');
+    const paginationEl = document.getElementById('users-pagination');
+    const pageStatusEl = document.getElementById('users-page-status');
+    const previousButton = paginationEl.querySelector('[data-page-action="previous"]');
+    const nextButton = paginationEl.querySelector('[data-page-action="next"]');
 
     const SELF_DELETE_REDIRECT_MS = 2500;
+    const PAGE_SIZE = 10;
 
     const state = {
         currentUserId: root.dataset.currentUserId,
         currentUserRole: root.dataset.currentUserRole,
-        usersById: new Map()
+        usersById: new Map(),
+        page: 1,
+        pagination: null
     };
 
     const showMessage = (text, tone = 'success') => {
@@ -51,7 +58,9 @@
     const readError = async (response, fallback) => {
         try {
             const body = await response.json();
-            return body.error || body.message || fallback;
+            const validationMessage = body.errors?.map((error) => error.message).join(' ');
+
+            return validationMessage || body.error || body.message || fallback;
         } catch {
             return fallback;
         }
@@ -90,8 +99,21 @@
         listEl.replaceChildren(fragment);
     };
 
-    const loadUsers = async () => {
-        const response = await fetch('/api/users');
+    const renderPagination = () => {
+        const { page, totalPages, totalItems, hasNextPage, hasPreviousPage } = state.pagination;
+
+        paginationEl.hidden = totalItems === 0;
+        pageStatusEl.textContent = `Page ${page} of ${totalPages} · ${totalItems} ${totalItems === 1 ? 'user' : 'users'}`;
+        previousButton.disabled = !hasPreviousPage;
+        nextButton.disabled = !hasNextPage;
+    };
+
+    const buildQuery = (page) => {
+        return new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+    };
+
+    const loadUsers = async (page = state.page) => {
+        const response = await fetch(`/api/users?${buildQuery(page)}`);
 
         if (redirectIfUnauthorized(response)) {
             return;
@@ -101,9 +123,19 @@
             throw new Error(await readError(response, 'Unable to load users right now.'));
         }
 
-        const users = await response.json();
-        state.usersById = new Map(users.map((user) => [user._id, user]));
+        const { data, pagination } = await response.json();
+
+        // Deleting the last user on the final page leaves it empty; jump to the new last page.
+        if (data.length === 0 && pagination.page > 1) {
+            await loadUsers(Math.max(1, pagination.totalPages));
+            return;
+        }
+
+        state.page = pagination.page;
+        state.pagination = pagination;
+        state.usersById = new Map(data.map((user) => [user._id, user]));
         renderUsers();
+        renderPagination();
     };
 
     const saveUser = async (event) => {
@@ -113,7 +145,6 @@
         const formError = form.querySelector('[data-field="formError"]');
         const submitButton = form.querySelector('button[type="submit"]');
         const userId = form.dataset.userId;
-        const previousRole = state.usersById.get(userId)?.role;
         const body = Object.fromEntries(new FormData(form));
 
         submitButton.disabled = true;
@@ -149,24 +180,28 @@
         }
 
         // From here on the form is replaced, so report problems in the banner.
-        if (updated._id === state.currentUserId && updated.role !== previousRole) {
+        if (updated._id === state.currentUserId) {
             state.currentUserRole = updated.role;
-            state.usersById.set(updated._id, updated);
-            renderUsers();
+        }
 
-            try {
-                await loadUsers();
-            } catch (error) {
-                showMessage(error.message, 'error');
-                return;
-            }
-        } else {
+        // Reload the page: a renamed user can move in the username sort, and a
+        // self-demoted admin now only sees their own record.
+        try {
+            await loadUsers();
+        } catch (error) {
             state.usersById.set(updated._id, updated);
             renderUsers();
+            showMessage(`${updated.displayName} was updated, but the list could not be refreshed.`, 'error');
+            return;
         }
 
         showMessage(`${updated.displayName} was updated.`);
-        focusEditButton(updated._id);
+
+        if (findCard(updated._id)) {
+            focusEditButton(updated._id);
+        } else {
+            messageEl.focus();
+        }
     };
 
     const showEditor = (user) => {
@@ -250,6 +285,7 @@
 
             if (result.loggedOut) {
                 listEl.replaceChildren();
+                paginationEl.hidden = true;
                 showMessage('Your account was deleted. You are being logged out and redirected to the home page...', 'warning');
                 setTimeout(() => {
                     window.location.assign('/');
@@ -257,8 +293,14 @@
                 return;
             }
 
-            state.usersById.delete(user._id);
-            renderUsers();
+            // Reload so the next user moves up to fill this page.
+            try {
+                await loadUsers();
+            } catch (error) {
+                showMessage(`${user.displayName} was deleted, but the list could not be refreshed.`, 'error');
+                return;
+            }
+
             showMessage(`${user.displayName} was deleted.`);
             messageEl.focus();
         } catch {
@@ -291,6 +333,35 @@
 
         if (button.dataset.action === 'delete') {
             await deleteUser(user, card);
+        }
+    });
+
+    let pageLoading = false;
+
+    paginationEl.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-page-action]');
+
+        if (!button || button.disabled || pageLoading) {
+            return;
+        }
+
+        const action = button.dataset.pageAction;
+
+        pageLoading = true;
+        hideMessage();
+
+        try {
+            await loadUsers(action === 'next' ? state.page + 1 : state.page - 1);
+        } catch (error) {
+            showMessage(error.message, 'error');
+        } finally {
+            pageLoading = false;
+            renderPagination();
+
+            const sameDirectionButton = action === 'next' ? nextButton : previousButton;
+            const otherButton = action === 'next' ? previousButton : nextButton;
+
+            (sameDirectionButton.disabled ? otherButton : sameDirectionButton).focus();
         }
     });
 

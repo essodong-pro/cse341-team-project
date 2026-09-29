@@ -207,13 +207,68 @@ router.get("/bookings/:id", getBookingById);
  * @swagger
  * /api/users:
  *   get:
- *     summary: Returns users visible to the signed-in user
- *     description: Admins receive every user. Other users receive a list containing only their own record.
+ *     summary: Returns a page of users visible to the signed-in user
+ *     description: Admins can page through every user. Other users only ever receive their own record. Results are sorted by username by default.
  *     security:
  *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Which page of results to return.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: How many users to return per page.
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [username, displayName, email, createdAt]
+ *           default: username
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
  *     responses:
  *       200:
- *         description: A list of users (password hashes are never included)
+ *         description: A page of users (password hashes are never included) with the query that ran and pagination metadata
+ *         content:
+ *           application/json:
+ *             example:
+ *               data:
+ *                 - _id: 66f1a2b3c4d5e6f7a8b9c0d1
+ *                   displayName: Ada Lovelace
+ *                   username: ada
+ *                   email: ada@example.com
+ *                   role: customer
+ *               query:
+ *                 sort: username
+ *                 order: asc
+ *               pagination:
+ *                 page: 1
+ *                 limit: 10
+ *                 totalItems: 13
+ *                 totalPages: 2
+ *                 hasNextPage: true
+ *                 hasPreviousPage: false
+ *       400:
+ *         description: Invalid page, limit, sort, or order
+ *         content:
+ *           application/json:
+ *             example:
+ *               errors:
+ *                 - field: limit
+ *                   message: limit must be a number between 1 and 50.
  *       401:
  *         description: Not logged in
  *       500:
