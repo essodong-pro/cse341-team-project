@@ -219,3 +219,28 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+.users-catalog .users-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+
+    &[hidden] {
+        display: none;
+    }
+
+    .users-page-status {
+        margin: 0;
+        color: var(--clr-text-secondary);
+        text-align: center;
+    }
+
+    /* Disabled here means "no more pages", not "busy": no progress cursor or hover color. */
+    .user-button:disabled {
+        cursor: not-allowed;
+        background-color: #e4e9f5;
+        color: var(--clr-text-secondary);
+    }
+}

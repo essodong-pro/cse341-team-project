@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   countUsersWithRole,
   deleteUser,
-  getAllUsers,
+  getPaginatedUsers,
   getUserById,
   updateUser
 } from '../src/models/users.js';
+import { getRoleByName } from '../src/models/roles.js';
 import { createTestUser, ensureUserIndexes, loginAs } from './helpers/auth.js';
 import { requireApiSelfOrAdmin } from '../src/middleware/ownership.js';
 import request from 'supertest';
@@ -14,6 +15,27 @@ import User from '../src/models/schemas/user.js';
 
 const ada = { displayName: 'Ada Lovelace', username: 'ada', email: 'ada@example.com' };
 const grace = { displayName: 'Grace Hopper', username: 'grace', email: 'grace@example.com' };
+const alan = { displayName: 'Alan Turing', username: 'aturing', email: 'alan@bletchley.org' };
+
+// Inserts `count` users directly (no bcrypt) named user01, user02, ...
+async function insertUsers(count, { role = 'customer', prefix = 'user' } = {}) {
+  const roleDoc = await getRoleByName(role);
+  const docs = Array.from({ length: count }, (_, index) => {
+    const n = String(index + 1).padStart(2, '0');
+
+    return {
+      displayName: `User ${n}`,
+      username: `${prefix}${n}`,
+      email: `${prefix}${n}@example.com`,
+      passwordHash: 'not-a-real-hash',
+      role: roleDoc._id
+    };
+  });
+
+  await User.insertMany(docs);
+}
+
+const usernames = (response) => response.body.data.map((user) => user.username);
 
 // initializeDatabase seeds demo admin/customer accounts; start each test with
 // only the users it creates so counts and last-admin rules are predictable.
@@ -22,17 +44,43 @@ beforeEach(async () => {
 });
 
 describe('user model functions', () => {
-  test('getAllUsers returns public users with the role name and no password hash', async () => {
+  test('getPaginatedUsers returns one sorted page of public users plus the total count', async () => {
     await createTestUser(ada);
     await createTestUser({ ...grace, role: 'admin' });
+    await createTestUser(alan);
+    // Capitalised username proves collation is applied: without it Mongo's
+    // default byte-order sort would put 'Zed' before the lowercase names.
+    await createTestUser({ displayName: 'Zed Zimmer', username: 'Zed', email: 'zed@example.com' });
 
-    const users = await getAllUsers();
+    const { users, totalItems } = await getPaginatedUsers({
+      filter: {},
+      page: 1,
+      limit: 4,
+      sort: 'username',
+      order: 'asc'
+    });
 
-    expect(users).toHaveLength(2);
-    const graceRecord = users.find((user) => user.username === 'grace');
-    expect(graceRecord.role).toBe('admin');
-    expect(typeof graceRecord._id).toBe('string');
-    expect(graceRecord).not.toHaveProperty('passwordHash');
+    expect(totalItems).toBe(4);
+    expect(users.map((user) => user.username)).toEqual(['ada', 'aturing', 'grace', 'Zed']);
+    expect(users[0].role).toBe('customer');
+    expect(typeof users[0]._id).toBe('string');
+    expect(users[0]).not.toHaveProperty('passwordHash');
+  });
+
+  test('getPaginatedUsers applies the filter to both the page and the count', async () => {
+    await createTestUser(ada);
+    const graceId = await createTestUser({ ...grace, role: 'admin' });
+
+    const { users, totalItems } = await getPaginatedUsers({
+      filter: { _id: graceId },
+      page: 1,
+      limit: 10,
+      sort: 'username',
+      order: 'desc'
+    });
+
+    expect(totalItems).toBe(1);
+    expect(users.map((user) => user.username)).toEqual(['grace']);
   });
 
   test('getUserById returns the matching public user', async () => {
@@ -130,7 +178,7 @@ describe('GET /api/users', () => {
     expect(response.status).toBe(401);
   });
 
-  test('returns every user to an admin', async () => {
+  test('returns every user to an admin with pagination metadata', async () => {
     await createTestUser(ada);
     await createTestUser({ ...grace, role: 'admin' });
     const agent = await loginAs(grace.email);
@@ -138,8 +186,17 @@ describe('GET /api/users', () => {
     const response = await agent.get('/api/users');
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveLength(2);
-    expect(response.body[0]).not.toHaveProperty('passwordHash');
+    expect(usernames(response)).toEqual(['ada', 'grace']);
+    expect(response.body.data[0]).not.toHaveProperty('passwordHash');
+    expect(response.body.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      totalItems: 2,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
+    expect(response.body.query).toEqual({ sort: 'username', order: 'asc' });
   });
 
   test('returns only the signed-in user to a customer', async () => {
@@ -150,8 +207,117 @@ describe('GET /api/users', () => {
     const response = await agent.get('/api/users');
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveLength(1);
-    expect(response.body[0]._id).toBe(adaId);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0]._id).toBe(adaId);
+    expect(response.body.pagination.totalItems).toBe(1);
+  });
+
+  test('a customer asking for page 2 still only ever sees their own record', async () => {
+    await createTestUser(ada);
+    await createTestUser({ ...grace, role: 'admin' });
+    const agent = await loginAs(ada.email);
+
+    const response = await agent.get('/api/users?page=2');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.pagination.totalItems).toBe(1);
+  });
+});
+
+describe('GET /api/users pagination', () => {
+  let agent;
+
+  // grace (admin) + user01..user12 = 13 users. By username: grace, user01, ..., user12.
+  beforeEach(async () => {
+    await createTestUser({ ...grace, role: 'admin' });
+    await insertUsers(12);
+    agent = await loginAs(grace.email);
+  });
+
+  test('returns 10 users by default, sorted by username', async () => {
+    const response = await agent.get('/api/users');
+
+    expect(response.status).toBe(200);
+    expect(usernames(response)).toEqual([
+      'grace', 'user01', 'user02', 'user03', 'user04',
+      'user05', 'user06', 'user07', 'user08', 'user09'
+    ]);
+    expect(response.body.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      totalItems: 13,
+      totalPages: 2,
+      hasNextPage: true,
+      hasPreviousPage: false
+    });
+  });
+
+  test('page 2 returns the remaining users and none from page 1', async () => {
+    const first = await agent.get('/api/users?page=1');
+    const second = await agent.get('/api/users?page=2');
+
+    expect(usernames(second)).toEqual(['user10', 'user11', 'user12']);
+    expect(usernames(second).some((name) => usernames(first).includes(name))).toBe(false);
+    expect(second.body.pagination).toMatchObject({ page: 2, hasNextPage: false, hasPreviousPage: true });
+  });
+
+  test('respects limit and reports the matching page count', async () => {
+    const response = await agent.get('/api/users?limit=5');
+
+    expect(response.body.data).toHaveLength(5);
+    expect(response.body.pagination).toMatchObject({ limit: 5, totalPages: 3 });
+  });
+
+  test('accepts the maximum limit of 50', async () => {
+    const response = await agent.get('/api/users?limit=50');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(13);
+  });
+
+  test('sort and order change the order of results', async () => {
+    const response = await agent.get('/api/users?sort=username&order=desc&limit=3');
+
+    expect(usernames(response)).toEqual(['user12', 'user11', 'user10']);
+    expect(response.body.query).toEqual({ sort: 'username', order: 'desc' });
+  });
+
+  test('a page past the end returns 200 with an empty list', async () => {
+    const response = await agent.get('/api/users?page=9');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.pagination).toMatchObject({ page: 9, totalItems: 13, hasNextPage: false });
+  });
+
+  test.each([
+    ['page=abc', 'page'],
+    ['page=0', 'page'],
+    ['page=1.5', 'page'],
+    ['page=1&page=2', 'page'],
+    ['page=1e20', 'page'],
+    ['limit=-5', 'limit'],
+    ['limit=0', 'limit'],
+    ['limit=51', 'limit'],
+    ['limit=100000', 'limit'],
+    ['sort=passwordHash', 'sort'],
+    ['sort=', 'sort'],
+    ['order=sideways', 'order'],
+    ['order=', 'order']
+  ])('returns 400 for %s', async (queryString, field) => {
+    const response = await agent.get(`/api/users?${queryString}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors.map((error) => error.field)).toEqual([field]);
+    expect(typeof response.body.errors[0].message).toBe('string');
+  });
+
+  test('reports every invalid parameter at once', async () => {
+    const response = await agent.get('/api/users?page=0&limit=100');
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors.map((error) => error.field)).toEqual(['page', 'limit']);
   });
 });
 
@@ -241,8 +407,8 @@ describe('PUT /api/users/:id', () => {
     expect(response.body.role).toBe('customer');
 
     const listResponse = await agent.get('/api/users');
-    expect(listResponse.body).toHaveLength(1);
-    expect(listResponse.body[0]._id).toBe(graceId);
+    expect(listResponse.body.data).toHaveLength(1);
+    expect(listResponse.body.data[0]._id).toBe(graceId);
   });
 
   test('returns 409 for a duplicate email', async () => {
