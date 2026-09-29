@@ -22,6 +22,8 @@ const DEFAULT_SORT = "username";
 const DEFAULT_ORDER = "asc";
 const ALLOWED_SORT_FIELDS = ["username", "displayName", "email", "createdAt"];
 const ALLOWED_ORDERS = ["asc", "desc"];
+const ALLOWED_ROLES = ["admin", "customer"];
+const MAX_SEARCH_LENGTH = 100;
 
 const isAdmin = (req) => req.user.role === "admin";
 // target._id comes from toPublicUser as a lowercase hex string, so this
@@ -71,7 +73,26 @@ function parseUserListQuery(query) {
     errors.push({ field: "order", message: "order must be asc or desc." });
   }
 
-  return { errors, options: { page, limit, sort, order } };
+  let q;
+  if (query.q !== undefined) {
+    if (typeof query.q !== "string") {
+      errors.push({ field: "q", message: "Search text must be a single string." });
+    } else {
+      // Quotes and backslashes would break the phrase search below.
+      q = query.q.replace(/["\\]/g, " ").trim();
+
+      if (!q || q.length > MAX_SEARCH_LENGTH) {
+        errors.push({ field: "q", message: `Search text must be between 1 and ${MAX_SEARCH_LENGTH} characters.` });
+      }
+    }
+  }
+
+  const role = query.role;
+  if (role !== undefined && !ALLOWED_ROLES.includes(role)) {
+    errors.push({ field: "role", message: `role must be one of: ${ALLOWED_ROLES.join(", ")}.` });
+  }
+
+  return { errors, options: { page, limit, sort, order, q, role } };
 }
 
 function buildPagination({ page, limit }, totalItems) {
@@ -97,15 +118,35 @@ export async function getUsers(req, res) {
       return res.status(400).json({ errors });
     }
 
+    const { q, role, ...paging } = options;
+
     // Non-admins go through the same query but can only ever match themselves.
     const filter = isAdmin(req) ? {} : { _id: req.user.id };
 
-    const { users, totalItems } = await fetchPaginatedUsers({ filter, ...options });
+    if (q) {
+      // A quoted phrase: "grace@example.com" must not match every @example.com user.
+      filter.$text = { $search: `"${q}"` };
+    }
+
+    if (role) {
+      // User.role stores the Role's ObjectId, not its name.
+      const roleDoc = await getRoleByName(role);
+      // Falling back to null is intentional: role is a required field on
+      // every user, so a null filter matches nobody instead of everybody.
+      filter.role = roleDoc?._id ?? null;
+    }
+
+    const { users, totalItems } = await fetchPaginatedUsers({ filter, ...paging });
 
     return res.status(200).json({
       data: users,
-      query: { sort: options.sort, order: options.order },
-      pagination: buildPagination(options, totalItems),
+      query: {
+        sort: paging.sort,
+        order: paging.order,
+        ...(q && { q }),
+        ...(role && { role }),
+      },
+      pagination: buildPagination(paging, totalItems),
     });
   } catch (error) {
     console.error("Error fetching users:", error);

@@ -16,6 +16,8 @@
     const pageStatusEl = document.getElementById('users-page-status');
     const previousButton = paginationEl.querySelector('[data-page-action="previous"]');
     const nextButton = paginationEl.querySelector('[data-page-action="next"]');
+    const filtersForm = document.getElementById('users-filters');
+    const emptyEl = document.getElementById('users-empty');
 
     const SELF_DELETE_REDIRECT_MS = 2500;
     const PAGE_SIZE = 10;
@@ -25,7 +27,8 @@
         currentUserRole: root.dataset.currentUserRole,
         usersById: new Map(),
         page: 1,
-        pagination: null
+        pagination: null,
+        filters: { q: '', role: '' }
     };
 
     const showMessage = (text, tone = 'success') => {
@@ -97,6 +100,9 @@
         }
 
         listEl.replaceChildren(fragment);
+        emptyEl.textContent = state.usersById.size > 0 ? '' : 'No users match your search.';
+        // Only admins can see other users, so only they get search and filters.
+        filtersForm.hidden = state.currentUserRole !== 'admin';
     };
 
     const renderPagination = () => {
@@ -108,31 +114,57 @@
         nextButton.disabled = !hasNextPage;
     };
 
-    const buildQuery = (page) => {
-        return new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+    const buildQuery = (page, filters) => {
+        const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+
+        if (state.currentUserRole === 'admin') {
+            if (filters.q) {
+                params.set('q', filters.q);
+            }
+
+            if (filters.role) {
+                params.set('role', filters.role);
+            }
+        }
+
+        return params;
     };
 
-    const loadUsers = async (page = state.page) => {
-        const response = await fetch(`/api/users?${buildQuery(page)}`);
+    let latestRequest = 0;
+
+    const loadUsers = async (page = state.page, filters = state.filters) => {
+        const requestId = ++latestRequest;
+        const response = await fetch(`/api/users?${buildQuery(page, filters)}`);
 
         if (redirectIfUnauthorized(response)) {
             return;
         }
 
         if (!response.ok) {
-            throw new Error(await readError(response, 'Unable to load users right now.'));
+            const message = await readError(response, 'Unable to load users right now.');
+
+            if (requestId !== latestRequest) {
+                return;
+            }
+
+            throw new Error(message);
         }
 
         const { data, pagination } = await response.json();
 
+        if (requestId !== latestRequest) {
+            return;
+        }
+
         // Deleting the last user on the final page leaves it empty; jump to the new last page.
         if (data.length === 0 && pagination.page > 1) {
-            await loadUsers(Math.max(1, pagination.totalPages));
+            await loadUsers(Math.max(1, pagination.totalPages), filters);
             return;
         }
 
         state.page = pagination.page;
         state.pagination = pagination;
+        state.filters = filters;
         state.usersById = new Map(data.map((user) => [user._id, user]));
         renderUsers();
         renderPagination();
@@ -363,6 +395,42 @@
 
             (sameDirectionButton.disabled ? otherButton : sameDirectionButton).focus();
         }
+    });
+
+    // New filters always start from page 1.
+    const applyFilters = async (filters) => {
+        hideMessage();
+
+        try {
+            await loadUsers(1, filters);
+        } catch (error) {
+            showMessage(error.message, 'error');
+        }
+    };
+
+    const readFilters = () => ({
+        q: filtersForm.elements.q.value.trim(),
+        role: filtersForm.elements.role.value
+    });
+
+    filtersForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        applyFilters(readFilters());
+    });
+
+    filtersForm.elements.role.addEventListener('change', () => {
+        applyFilters(readFilters());
+    });
+
+    filtersForm.elements.q.addEventListener('input', () => {
+        if (filtersForm.elements.q.value === '' && state.filters.q) {
+            applyFilters(readFilters());
+        }
+    });
+
+    // "reset" fires before the fields clear, so don't read them here.
+    filtersForm.addEventListener('reset', () => {
+        applyFilters({ q: '', role: '' });
     });
 
     const init = async () => {

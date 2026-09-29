@@ -244,3 +244,57 @@
         color: var(--clr-text-secondary);
     }
 }
+
+.users-catalog .users-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+
+    &[hidden] {
+        display: none;
+    }
+
+    label {
+        display: flex;
+        flex: 1 1 12rem;
+        flex-direction: column;
+        gap: var(--space-xs);
+        color: var(--clr-text-secondary);
+        font-size: var(--font-size-sm);
+        /* The global label style adds a bottom margin that pushes the fields above the buttons. */
+        margin: 0;
+    }
+
+    input,
+    select {
+        width: 100%;
+        min-width: 0;
+        block-size: 4.4rem;
+        padding: var(--space-xs) var(--space-sm);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-md);
+        font-family: var(--font-family-base);
+        line-height: var(--line-height-md);
+        background-color: var(--clr-surface);
+        color: var(--clr-text-primary);
+    }
+
+    input[type="search"] {
+        appearance: none;
+    }
+
+    .user-actions {
+        margin-top: 0;
+    }
+
+    .user-button {
+        block-size: 4.4rem;
+    }
+}
+
+.users-catalog .users-empty:empty {
+    display: none;
+}
