@@ -4,7 +4,13 @@ import { homePage, aboutPage, testErrorPage } from './index.js';
 
 import { trainsApi, trainsPage } from './trains.js';
 
-import { renderTripsList, renderTripDetails, getAllTrips, getTripById } from '../controllers/trips.js';
+import {
+    renderTripsList,
+    renderTripDetails,
+    getAllTrips,
+    getTripById,
+    renderTripsAdmin
+} from '../controllers/trips.js';
 
 import { getSchedulesForTrip, getSchedulesForTripAndMonth } from "../controllers/schedules.js";
 
@@ -72,6 +78,11 @@ router.get('/login', (req, res) => {
 router.post('/login', login);
 
 router.post('/logout', logout);
+router.get(
+    '/trips-admin',
+    requirePageRole('admin'),
+    renderTripsAdmin
+);
 
 router.get('/admin', requirePageRole('admin'), (req, res) => {
     return res.render('admin', {

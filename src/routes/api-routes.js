@@ -6,7 +6,9 @@ import {
 
 import {
     getAllTrips,
-    getTripById
+    getTripById,
+    updateTrip,
+    deleteTrip
 } from "../controllers/trips.js";
 
 import {
@@ -29,7 +31,10 @@ import {
     updateUserById,
     deleteUserById
 } from "../controllers/users.js";
-import { requireApiLogin } from "../middleware/auth.js";
+import {
+    requireApiLogin,
+    requireApiRole
+} from "../middleware/auth.js";
 import { requireApiSelfOrAdmin } from "../middleware/ownership.js";
 
 const router = express.Router();
@@ -89,6 +94,17 @@ router.get("/trips", getAllTrips);
  *         description: A single trip object
  */
 router.get("/trips/:id", getTripById);
+router.put(
+    "/trips/:id",
+    requireApiRole("admin"),
+    updateTrip
+);
+
+router.delete(
+    "/trips/:id",
+    requireApiRole("admin"),
+    deleteTrip
+);
 
 /**
  * @swagger
