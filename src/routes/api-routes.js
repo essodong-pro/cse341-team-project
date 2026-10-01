@@ -66,7 +66,7 @@ router.get("/trains/:id", getTrainById);
  * @swagger
  * /api/trips:
  *   get:
- *     summary: Returns paginated trips
+ *     summary: Returns paginated and filtered trips
  *     parameters:
  *       - in: query
  *         name: page
@@ -83,11 +83,26 @@ router.get("/trains/:id", getTrainById);
  *           minimum: 1
  *           maximum: 50
  *         description: Number of trips per page
+ *       - in: query
+ *         name: region
+ *         schema:
+ *           type: string
+ *         description: Filter trips by region
+ *       - in: query
+ *         name: season
+ *         schema:
+ *           type: string
+ *         description: Filter trips by best season
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search trip names and descriptions
  *     responses:
  *       200:
- *         description: Paginated list of trips
+ *         description: Paginated and filtered list of trips
  *       400:
- *         description: Invalid pagination parameters
+ *         description: Invalid query parameters
  */
 router.get("/trips", getAllTrips);
 /**

@@ -38,8 +38,18 @@ export async function getAllTrips(req, res) {
             });
         }
 
+        const region = req.query.region;
+        const season = req.query.season;
+        const q = req.query.q;
+
         const { trips, totalItems } =
-            await getPaginatedTrips(page, limit);
+            await getPaginatedTrips({
+                page,
+                limit,
+                region,
+                season,
+                q
+            });
 
         const totalPages = Math.ceil(totalItems / limit);
 
