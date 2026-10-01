@@ -7,3 +7,20 @@ export async function getTripById(id) {
 export async function getAllTrips() {
     return Trip.find({}).lean();
 }
+
+export async function getPaginatedTrips(page, limit) {
+    const skip = (page - 1) * limit;
+
+    const [trips, totalItems] = await Promise.all([
+        Trip.find({})
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        Trip.countDocuments({})
+    ]);
+
+    return {
+        trips,
+        totalItems
+    };
+}

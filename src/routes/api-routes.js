@@ -66,13 +66,30 @@ router.get("/trains/:id", getTrainById);
  * @swagger
  * /api/trips:
  *   get:
- *     summary: Returns all trips
+ *     summary: Returns paginated trips
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 50
+ *         description: Number of trips per page
  *     responses:
  *       200:
- *         description: A list of trips
+ *         description: Paginated list of trips
+ *       400:
+ *         description: Invalid pagination parameters
  */
 router.get("/trips", getAllTrips);
-
 /**
  * @swagger
  * /api/trips/{id}:
