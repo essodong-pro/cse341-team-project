@@ -1,6 +1,7 @@
 import {
     getAllTrips as fetchAllTrips,
-    getTripById as fetchTripById
+    getTripById as fetchTripById,
+    getPaginatedTrips
 } from "../models/trips.js";
 
 // ==========================
@@ -9,9 +10,50 @@ import {
 
 export async function getAllTrips(req, res) {
     try {
-        const trips = await fetchAllTrips();
+        const page =
+            req.query.page === undefined
+                ? 1
+                : Number(req.query.page);
 
-        return res.status(200).json(trips);
+        const limit =
+            req.query.limit === undefined
+                ? 10
+                : Number(req.query.limit);
+
+        if (
+            !Number.isInteger(page) ||
+            page < 1 ||
+            !Number.isInteger(limit) ||
+            limit < 1 ||
+            limit > 50
+        ) {
+            return res.status(400).json({
+                errors: [
+                    {
+                        field: "pagination",
+                        message:
+                            "page and limit must be valid positive numbers. Maximum limit is 50."
+                    }
+                ]
+            });
+        }
+
+        const { trips, totalItems } =
+            await getPaginatedTrips(page, limit);
+
+        const totalPages = Math.ceil(totalItems / limit);
+
+        return res.status(200).json({
+            data: trips,
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPreviousPage: page > 1
+            }
+        });
     } catch (error) {
         console.error("Error fetching trips:", error);
 
@@ -20,6 +62,7 @@ export async function getAllTrips(req, res) {
         });
     }
 }
+
 
 export async function getTripById(req, res) {
     try {
