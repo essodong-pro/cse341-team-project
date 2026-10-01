@@ -8,6 +8,38 @@
     </section>
 
     <section class="bookings-catalog">
+
+        <form class="bookings-filters" id="bookings-filters">
+            <div class="bookings-filter-group">
+                <label for="booking-ticket-class">Ticket Class</label>
+                <select id="booking-ticket-class" name="ticketClass">
+                    <option value="">All ticket classes</option>
+                </select>
+            </div>
+
+            <div class="bookings-filter-group">
+                <label for="booking-start-date">Start Date</label>
+                <input type="date" id="booking-start-date" name="startDate">
+            </div>
+
+            <div class="bookings-filter-group">
+                <label for="booking-end-date">End Date</label>
+                <input type="date" id="booking-end-date" name="endDate">
+            </div>
+
+            <div class="bookings-filter-actions">
+                <button type="submit" class="bookings-filter-button">
+                    Apply Filters
+                </button>
+
+                <button type="button" class="bookings-clear-button" id="bookings-clear-filters">
+                    Clear Filters
+                </button>
+            </div>
+        </form>
+
+        <div class="bookings-state bookings-filter-error" id="bookings-filter-error" hidden></div>
+
         <div class="bookings-state" id="bookings-loading">
             Loading bookings...
         </div>
@@ -69,6 +101,7 @@
                 </a>
             </article>
         </template>
+
     </section>
 
     <%- include('./partials/footer') %>

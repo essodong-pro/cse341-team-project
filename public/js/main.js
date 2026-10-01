@@ -102,43 +102,190 @@ const hookTrainsCatalog = async () => {
     }
 };
 
+const loadBookingTicketClasses = async () => {
+    const ticketClassSelect = document.getElementById(
+        "booking-ticket-class"
+    );
+
+    if (!ticketClassSelect) {
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/ticket-classes");
+
+        if (!response.ok) {
+            throw new Error(
+                `Failed to load ticket classes (${response.status})`
+            );
+        }
+
+        const ticketClasses = await response.json();
+
+        ticketClasses.forEach((ticketClass) => {
+            const option = document.createElement("option");
+
+            option.value = ticketClass.class;
+            option.textContent = ticketClass.name || ticketClass.class;
+
+            ticketClassSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Error loading ticket classes:", error);
+    }
+};
+
+const renderBookingCards = (bookings, trips, templateEl, listEl) => {
+    const tripNamesById = new Map(
+        trips.map((trip) => [String(trip.id), trip.name])
+    );
+
+    const fragment = document.createDocumentFragment();
+
+    bookings.forEach((booking) => {
+        const card = templateEl.content.cloneNode(true);
+
+        const dayLabel = booking.selectedDay
+            ? booking.selectedDay.charAt(0).toUpperCase() +
+            booking.selectedDay.slice(1)
+            : "";
+
+        card.querySelector('[data-field="id"]').textContent =
+            booking.id;
+
+        card.querySelector('[data-field="ticketClass"]').textContent =
+            booking.ticketClass;
+
+        card.querySelector('[data-field="totalPrice"]').textContent =
+            `¥${Number(booking.totalPrice).toLocaleString()}`;
+
+        card.querySelector('[data-field="tripName"]').textContent =
+            tripNamesById.get(String(booking.tripId)) ||
+            booking.tripId;
+
+        card.querySelector('[data-field="selectedDay"]').textContent =
+            dayLabel;
+
+        card.querySelector('[data-field="passengerCount"]').textContent =
+            (booking.passengers || []).length;
+
+        card.querySelector('[data-field="createdAt"]').textContent =
+            new Date(booking.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+            });
+
+        card.querySelector('[data-field="viewLink"]').href =
+            `/bookings/${booking.id}`;
+
+        fragment.appendChild(card);
+    });
+
+    listEl.replaceChildren(fragment);
+};
+
 const hookBookingsCatalog = async () => {
     const listEl = document.getElementById("bookings-list");
     const templateEl = document.getElementById("booking-card-template");
     const loadingEl = document.getElementById("bookings-loading");
     const errorEl = document.getElementById("bookings-error");
-    const paginationEl = document.getElementById("bookings-pagination");
-    const previousButton = document.getElementById("bookings-previous");
+    const filterErrorEl = document.getElementById(
+        "bookings-filter-error"
+    );
+
+    const filterForm = document.getElementById("bookings-filters");
+    const clearFiltersButton = document.getElementById(
+        "bookings-clear-filters"
+    );
+
+    const ticketClassSelect = document.getElementById(
+        "booking-ticket-class"
+    );
+
+    const startDateInput = document.getElementById(
+        "booking-start-date"
+    );
+
+    const endDateInput = document.getElementById(
+        "booking-end-date"
+    );
+
+    const paginationEl = document.getElementById(
+        "bookings-pagination"
+    );
+
+    const previousButton = document.getElementById(
+        "bookings-previous"
+    );
+
     const nextButton = document.getElementById("bookings-next");
-    const pageStatusEl = document.getElementById("bookings-page-status");
+
+    const pageStatusEl = document.getElementById(
+        "bookings-page-status"
+    );
 
     if (!listEl || !templateEl) {
         return;
     }
 
-    const PAGE_SIZE = 10;
+    await loadBookingTicketClasses();
+
     let currentPage = 1;
-    let totalPages = 1;
+    const pageSize = 10;
 
-    const loadBookings = async (page) => {
+    const loadBookings = async () => {
+        if (loadingEl) {
+            loadingEl.hidden = false;
+        }
+
+        if (errorEl) {
+            errorEl.hidden = true;
+        }
+
+        if (filterErrorEl) {
+            filterErrorEl.hidden = true;
+        }
+
+        const params = new URLSearchParams();
+
+        params.set("page", String(currentPage));
+        params.set("limit", String(pageSize));
+        params.set("sort", "createdAt");
+        params.set("order", "desc");
+
+        if (ticketClassSelect?.value) {
+            params.set("ticketClass", ticketClassSelect.value);
+        }
+
+        if (startDateInput?.value) {
+            params.set("startDate", startDateInput.value);
+        }
+
+        if (endDateInput?.value) {
+            params.set("endDate", endDateInput.value);
+        }
+
         try {
-            if (loadingEl) {
-                loadingEl.hidden = false;
-                loadingEl.textContent = "Loading bookings...";
-            }
-
-            if (errorEl) {
-                errorEl.hidden = true;
-            }
-
             const [bookingsResponse, tripsResponse] = await Promise.all([
-                fetch(
-                    `/api/bookings?page=${page}&limit=${PAGE_SIZE}&sort=createdAt&order=desc`
-                ),
+                fetch(`/api/bookings?${params.toString()}`),
                 fetch("/api/trips")
             ]);
 
+            const bookingsPayload = await bookingsResponse.json();
+
             if (!bookingsResponse.ok) {
+                const message =
+                    bookingsPayload.errors
+                        ?.map((item) => item.message)
+                        .join(" ") ||
+                    "Unable to load bookings right now.";
+
+                if (filterErrorEl) {
+                    filterErrorEl.hidden = false;
+                    filterErrorEl.textContent = message;
+                }
+
                 throw new Error(
                     `Failed to load bookings (${bookingsResponse.status})`
                 );
@@ -150,84 +297,38 @@ const hookBookingsCatalog = async () => {
                 );
             }
 
-            const bookingsPayload = await bookingsResponse.json();
             const trips = await tripsResponse.json();
 
-            const bookings = bookingsPayload.data || [];
-            const pagination = bookingsPayload.pagination || {};
-
-            currentPage = pagination.page || page;
-            totalPages = pagination.totalPages || 1;
-
-            const tripNamesById = new Map(
-                trips.map((trip) => [String(trip.id), trip.name])
+            renderBookingCards(
+                bookingsPayload.data || [],
+                trips,
+                templateEl,
+                listEl
             );
 
-            const fragment = document.createDocumentFragment();
+            const pagination = bookingsPayload.pagination;
 
-            bookings.forEach((booking) => {
-                const card = templateEl.content.cloneNode(true);
+            if (paginationEl && pagination) {
+                paginationEl.hidden = pagination.totalPages <= 1;
 
-                const dayLabel = booking.selectedDay
-                    ? booking.selectedDay.charAt(0).toUpperCase() +
-                    booking.selectedDay.slice(1)
-                    : "";
+                if (pageStatusEl) {
+                    pageStatusEl.textContent =
+                        `Page ${pagination.page} of ${pagination.totalPages}`;
+                }
 
-                card.querySelector('[data-field="id"]').textContent =
-                    booking.id;
+                if (previousButton) {
+                    previousButton.disabled =
+                        !pagination.hasPreviousPage;
+                }
 
-                card.querySelector(
-                    '[data-field="ticketClass"]'
-                ).textContent = booking.ticketClass;
-
-                card.querySelector('[data-field="totalPrice"]').textContent =
-                    `¥${Number(booking.totalPrice).toLocaleString()}`;
-
-                card.querySelector('[data-field="tripName"]').textContent =
-                    tripNamesById.get(String(booking.tripId)) ||
-                    booking.tripId;
-
-                card.querySelector('[data-field="selectedDay"]').textContent =
-                    dayLabel;
-
-                card.querySelector(
-                    '[data-field="passengerCount"]'
-                ).textContent = (booking.passengers || []).length;
-
-                card.querySelector('[data-field="createdAt"]').textContent =
-                    new Date(booking.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric"
-                    });
-
-                card.querySelector('[data-field="viewLink"]').href =
-                    `/bookings/${booking.id}`;
-
-                fragment.appendChild(card);
-            });
-
-            listEl.replaceChildren(fragment);
+                if (nextButton) {
+                    nextButton.disabled =
+                        !pagination.hasNextPage;
+                }
+            }
 
             if (loadingEl) {
                 loadingEl.hidden = true;
-            }
-
-            if (paginationEl) {
-                paginationEl.hidden = false;
-            }
-
-            if (pageStatusEl) {
-                pageStatusEl.textContent =
-                    `Page ${currentPage} of ${totalPages}`;
-            }
-
-            if (previousButton) {
-                previousButton.disabled = !pagination.hasPreviousPage;
-            }
-
-            if (nextButton) {
-                nextButton.disabled = !pagination.hasNextPage;
             }
         } catch (error) {
             console.error("Error loading bookings:", error);
@@ -236,46 +337,73 @@ const hookBookingsCatalog = async () => {
                 loadingEl.hidden = true;
             }
 
-            if (errorEl) {
+            if (errorEl && (!filterErrorEl || filterErrorEl.hidden)) {
                 errorEl.hidden = false;
                 errorEl.textContent =
                     "Unable to load bookings right now. Please try again in a moment.";
             }
-
-            if (paginationEl) {
-                paginationEl.hidden = true;
-            }
         }
     };
+
+    if (filterForm) {
+        filterForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+
+            currentPage = 1;
+            loadBookings();
+        });
+    }
+
+    if (clearFiltersButton) {
+        clearFiltersButton.addEventListener("click", () => {
+            if (ticketClassSelect) {
+                ticketClassSelect.value = "";
+            }
+
+            if (startDateInput) {
+                startDateInput.value = "";
+            }
+
+            if (endDateInput) {
+                endDateInput.value = "";
+            }
+
+            if (filterErrorEl) {
+                filterErrorEl.hidden = true;
+            }
+
+            currentPage = 1;
+            loadBookings();
+        });
+    }
 
     if (previousButton) {
         previousButton.addEventListener("click", () => {
             if (currentPage > 1) {
-                loadBookings(currentPage - 1);
+                currentPage -= 1;
+                loadBookings();
             }
         });
     }
 
     if (nextButton) {
         nextButton.addEventListener("click", () => {
-            if (currentPage < totalPages) {
-                loadBookings(currentPage + 1);
-            }
+            currentPage += 1;
+            loadBookings();
         });
     }
 
-    await loadBookings(currentPage);
+    loadBookings();
 };
 
 const fetchAllBookings = async () => {
-    const PAGE_SIZE = 50;
+    const allBookings = [];
     let page = 1;
-    let allBookings = [];
-    let hasNextPage = true;
+    const limit = 50;
 
-    while (hasNextPage) {
+    while (true) {
         const response = await fetch(
-            `/api/bookings?page=${page}&limit=${PAGE_SIZE}&sort=createdAt&order=desc`
+            `/api/bookings?page=${page}&limit=${limit}&sort=createdAt&order=desc`
         );
 
         if (!response.ok) {
@@ -286,9 +414,15 @@ const fetchAllBookings = async () => {
 
         const payload = await response.json();
 
-        allBookings = allBookings.concat(payload.data || []);
+        allBookings.push(...(payload.data || []));
 
-        hasNextPage = Boolean(payload.pagination?.hasNextPage);
+        if (
+            !payload.pagination ||
+            !payload.pagination.hasNextPage
+        ) {
+            break;
+        }
+
         page += 1;
     }
 
@@ -298,10 +432,14 @@ const fetchAllBookings = async () => {
 const hookUserDashboard = async () => {
     const dashboardEl = document.getElementById("user-dashboard");
     const listEl = document.getElementById("user-bookings-list");
-    const loadingEl = document.getElementById("user-bookings-loading");
+    const loadingEl = document.getElementById(
+        "user-bookings-loading"
+    );
     const errorEl = document.getElementById("user-bookings-error");
     const emptyEl = document.getElementById("user-bookings-empty");
-    const templateEl = document.getElementById("user-booking-card-template");
+    const templateEl = document.getElementById(
+        "user-booking-card-template"
+    );
 
     if (!dashboardEl || !listEl || !templateEl) {
         return;
