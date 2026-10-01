@@ -223,7 +223,7 @@
 
     .bookings-pagination-button {
         min-width: 90px;
-        padding: var(--space-sm) var(--space-md);
+        padding: var(--space-sm) var(--space-lg);
         border: 1px solid var(--clr-primary);
         border-radius: var(--radius-md);
         background-color: var(--clr-primary);
@@ -250,6 +250,7 @@
         color: var(--clr-text-primary);
         font-size: var(--font-size-sm);
         font-weight: 600;
+        white-space: nowrap;
     }
 }
 

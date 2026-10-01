@@ -1,15 +1,15 @@
 const hookRegionSorter = () => {
-    const regionSelect = document.getElementById('region-filter');
+    const regionSelect = document.getElementById("region-filter");
 
     if (regionSelect) {
-        regionSelect.addEventListener('change', () => {
+        regionSelect.addEventListener("change", () => {
             const selectedRegion = regionSelect.value;
             const url = new URL(window.location.href);
 
-            if (selectedRegion && selectedRegion !== 'all') {
-                url.searchParams.set('region', selectedRegion);
+            if (selectedRegion && selectedRegion !== "all") {
+                url.searchParams.set("region", selectedRegion);
             } else {
-                url.searchParams.delete('region');
+                url.searchParams.delete("region");
             }
 
             window.location.href = url.toString();
@@ -18,17 +18,17 @@ const hookRegionSorter = () => {
 };
 
 const hookSeasonSorter = () => {
-    const seasonSelect = document.getElementById('season-filter');
+    const seasonSelect = document.getElementById("season-filter");
 
     if (seasonSelect) {
-        seasonSelect.addEventListener('change', () => {
+        seasonSelect.addEventListener("change", () => {
             const selectedSeason = seasonSelect.value;
             const url = new URL(window.location.href);
 
-            if (selectedSeason && selectedSeason !== 'all') {
-                url.searchParams.set('season', selectedSeason);
+            if (selectedSeason && selectedSeason !== "all") {
+                url.searchParams.set("season", selectedSeason);
             } else {
-                url.searchParams.delete('season');
+                url.searchParams.delete("season");
             }
 
             window.location.href = url.toString();
@@ -37,17 +37,17 @@ const hookSeasonSorter = () => {
 };
 
 const hookTrainsCatalog = async () => {
-    const listEl = document.getElementById('trains-list');
-    const templateEl = document.getElementById('train-card-template');
-    const loadingEl = document.getElementById('trains-loading');
-    const errorEl = document.getElementById('trains-error');
+    const listEl = document.getElementById("trains-list");
+    const templateEl = document.getElementById("train-card-template");
+    const loadingEl = document.getElementById("trains-loading");
+    const errorEl = document.getElementById("trains-error");
 
     if (!listEl || !templateEl) {
         return;
     }
 
     try {
-        const response = await fetch('/api/trains');
+        const response = await fetch("/api/trains");
 
         if (!response.ok) {
             throw new Error(`Failed to load trains (${response.status})`);
@@ -65,7 +65,8 @@ const hookTrainsCatalog = async () => {
             imageEl.alt = train.imageAlt || `${train.name} train`;
 
             card.querySelector('[data-field="name"]').textContent = train.name;
-            card.querySelector('[data-field="operator"]').textContent = train.operator;
+            card.querySelector('[data-field="operator"]').textContent =
+                train.operator;
             card.querySelector('[data-field="type"]').textContent = train.type;
             card.querySelector('[data-field="speed"]').textContent =
                 `${train.maxSpeedKmh} km/h`;
@@ -87,7 +88,7 @@ const hookTrainsCatalog = async () => {
             loadingEl.hidden = true;
         }
     } catch (error) {
-        console.error('Error loading trains:', error);
+        console.error("Error loading trains:", error);
 
         if (loadingEl) {
             loadingEl.hidden = true;
@@ -96,14 +97,14 @@ const hookTrainsCatalog = async () => {
         if (errorEl) {
             errorEl.hidden = false;
             errorEl.textContent =
-                'Unable to load trains right now. Please try again in a moment.';
+                "Unable to load trains right now. Please try again in a moment.";
         }
     }
 };
 
 const loadBookingTicketClasses = async () => {
     const ticketClassSelect = document.getElementById(
-        'booking-ticket-class'
+        "booking-ticket-class"
     );
 
     if (!ticketClassSelect) {
@@ -111,7 +112,7 @@ const loadBookingTicketClasses = async () => {
     }
 
     try {
-        const response = await fetch('/api/ticket-classes');
+        const response = await fetch("/api/ticket-classes");
 
         if (!response.ok) {
             throw new Error(
@@ -122,7 +123,7 @@ const loadBookingTicketClasses = async () => {
         const ticketClasses = await response.json();
 
         ticketClasses.forEach((ticketClass) => {
-            const option = document.createElement('option');
+            const option = document.createElement("option");
 
             option.value = ticketClass.class;
             option.textContent = ticketClass.name || ticketClass.class;
@@ -130,7 +131,7 @@ const loadBookingTicketClasses = async () => {
             ticketClassSelect.appendChild(option);
         });
     } catch (error) {
-        console.error('Error loading ticket classes:', error);
+        console.error("Error loading ticket classes:", error);
     }
 };
 
@@ -147,7 +148,7 @@ const renderBookingCards = (bookings, trips, templateEl, listEl) => {
         const dayLabel = booking.selectedDay
             ? booking.selectedDay.charAt(0).toUpperCase() +
             booking.selectedDay.slice(1)
-            : '';
+            : "";
 
         card.querySelector('[data-field="id"]').textContent =
             booking.id;
@@ -169,10 +170,10 @@ const renderBookingCards = (bookings, trips, templateEl, listEl) => {
             (booking.passengers || []).length;
 
         card.querySelector('[data-field="createdAt"]').textContent =
-            new Date(booking.createdAt).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
+            new Date(booking.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
             });
 
         card.querySelector('[data-field="viewLink"]').href =
@@ -185,35 +186,43 @@ const renderBookingCards = (bookings, trips, templateEl, listEl) => {
 };
 
 const hookBookingsCatalog = async () => {
-    const listEl = document.getElementById('bookings-list');
-    const templateEl = document.getElementById('booking-card-template');
-    const loadingEl = document.getElementById('bookings-loading');
-    const errorEl = document.getElementById('bookings-error');
+    const listEl = document.getElementById("bookings-list");
+    const templateEl = document.getElementById("booking-card-template");
+    const loadingEl = document.getElementById("bookings-loading");
+    const errorEl = document.getElementById("bookings-error");
     const filterErrorEl = document.getElementById(
-        'bookings-filter-error'
+        "bookings-filter-error"
     );
-    const filterForm = document.getElementById('bookings-filters');
+
+    const filterForm = document.getElementById("bookings-filters");
     const clearFiltersButton = document.getElementById(
-        'bookings-clear-filters'
+        "bookings-clear-filters"
     );
+
     const ticketClassSelect = document.getElementById(
-        'booking-ticket-class'
+        "booking-ticket-class"
     );
+
     const startDateInput = document.getElementById(
-        'booking-start-date'
+        "booking-start-date"
     );
+
     const endDateInput = document.getElementById(
-        'booking-end-date'
+        "booking-end-date"
     );
+
     const paginationEl = document.getElementById(
-        'bookings-pagination'
+        "bookings-pagination"
     );
+
     const previousButton = document.getElementById(
-        'bookings-previous'
+        "bookings-previous"
     );
-    const nextButton = document.getElementById('bookings-next');
+
+    const nextButton = document.getElementById("bookings-next");
+
     const pageStatusEl = document.getElementById(
-        'bookings-page-status'
+        "bookings-page-status"
     );
 
     if (!listEl || !templateEl) {
@@ -240,36 +249,37 @@ const hookBookingsCatalog = async () => {
 
         const params = new URLSearchParams();
 
-        params.set('page', String(currentPage));
-        params.set('limit', String(pageSize));
-        params.set('sort', 'createdAt');
-        params.set('order', 'desc');
+        params.set("page", String(currentPage));
+        params.set("limit", String(pageSize));
+        params.set("sort", "createdAt");
+        params.set("order", "desc");
 
         if (ticketClassSelect?.value) {
-            params.set('ticketClass', ticketClassSelect.value);
+            params.set("ticketClass", ticketClassSelect.value);
         }
 
         if (startDateInput?.value) {
-            params.set('startDate', startDateInput.value);
+            params.set("startDate", startDateInput.value);
         }
 
         if (endDateInput?.value) {
-            params.set('endDate', endDateInput.value);
+            params.set("endDate", endDateInput.value);
         }
 
         try {
             const [bookingsResponse, tripsResponse] = await Promise.all([
                 fetch(`/api/bookings?${params.toString()}`),
-                fetch('/api/trips')
+                fetch("/api/trips")
             ]);
 
             const bookingsPayload = await bookingsResponse.json();
 
             if (!bookingsResponse.ok) {
-                const message = bookingsPayload.errors
-                    ?.map((item) => item.message)
-                    .join(' ') ||
-                    'Unable to load bookings right now.';
+                const message =
+                    bookingsPayload.errors
+                        ?.map((item) => item.message)
+                        .join(" ") ||
+                    "Unable to load bookings right now.";
 
                 if (filterErrorEl) {
                     filterErrorEl.hidden = false;
@@ -321,7 +331,7 @@ const hookBookingsCatalog = async () => {
                 loadingEl.hidden = true;
             }
         } catch (error) {
-            console.error('Error loading bookings:', error);
+            console.error("Error loading bookings:", error);
 
             if (loadingEl) {
                 loadingEl.hidden = true;
@@ -330,13 +340,13 @@ const hookBookingsCatalog = async () => {
             if (errorEl && (!filterErrorEl || filterErrorEl.hidden)) {
                 errorEl.hidden = false;
                 errorEl.textContent =
-                    'Unable to load bookings right now. Please try again in a moment.';
+                    "Unable to load bookings right now. Please try again in a moment.";
             }
         }
     };
 
     if (filterForm) {
-        filterForm.addEventListener('submit', (event) => {
+        filterForm.addEventListener("submit", (event) => {
             event.preventDefault();
 
             currentPage = 1;
@@ -345,17 +355,17 @@ const hookBookingsCatalog = async () => {
     }
 
     if (clearFiltersButton) {
-        clearFiltersButton.addEventListener('click', () => {
+        clearFiltersButton.addEventListener("click", () => {
             if (ticketClassSelect) {
-                ticketClassSelect.value = '';
+                ticketClassSelect.value = "";
             }
 
             if (startDateInput) {
-                startDateInput.value = '';
+                startDateInput.value = "";
             }
 
             if (endDateInput) {
-                endDateInput.value = '';
+                endDateInput.value = "";
             }
 
             if (filterErrorEl) {
@@ -368,7 +378,7 @@ const hookBookingsCatalog = async () => {
     }
 
     if (previousButton) {
-        previousButton.addEventListener('click', () => {
+        previousButton.addEventListener("click", () => {
             if (currentPage > 1) {
                 currentPage -= 1;
                 loadBookings();
@@ -377,7 +387,7 @@ const hookBookingsCatalog = async () => {
     }
 
     if (nextButton) {
-        nextButton.addEventListener('click', () => {
+        nextButton.addEventListener("click", () => {
             currentPage += 1;
             loadBookings();
         });
@@ -420,15 +430,15 @@ const fetchAllBookings = async () => {
 };
 
 const hookUserDashboard = async () => {
-    const dashboardEl = document.getElementById('user-dashboard');
-    const listEl = document.getElementById('user-bookings-list');
+    const dashboardEl = document.getElementById("user-dashboard");
+    const listEl = document.getElementById("user-bookings-list");
     const loadingEl = document.getElementById(
-        'user-bookings-loading'
+        "user-bookings-loading"
     );
-    const errorEl = document.getElementById('user-bookings-error');
-    const emptyEl = document.getElementById('user-bookings-empty');
+    const errorEl = document.getElementById("user-bookings-error");
+    const emptyEl = document.getElementById("user-bookings-empty");
     const templateEl = document.getElementById(
-        'user-booking-card-template'
+        "user-booking-card-template"
     );
 
     if (!dashboardEl || !listEl || !templateEl) {
@@ -444,7 +454,7 @@ const hookUserDashboard = async () => {
     try {
         const [bookings, tripsResponse] = await Promise.all([
             fetchAllBookings(),
-            fetch('/api/trips')
+            fetch("/api/trips")
         ]);
 
         if (!tripsResponse.ok) {
@@ -489,7 +499,7 @@ const hookUserDashboard = async () => {
             const dayLabel = booking.selectedDay
                 ? booking.selectedDay.charAt(0).toUpperCase() +
                 booking.selectedDay.slice(1)
-                : '';
+                : "";
 
             card.querySelector('[data-field="id"]').textContent =
                 booking.id;
@@ -518,7 +528,7 @@ const hookUserDashboard = async () => {
 
         listEl.replaceChildren(fragment);
     } catch (error) {
-        console.error('Error loading user dashboard:', error);
+        console.error("Error loading user dashboard:", error);
 
         if (loadingEl) {
             loadingEl.hidden = true;
@@ -527,12 +537,12 @@ const hookUserDashboard = async () => {
         if (errorEl) {
             errorEl.hidden = false;
             errorEl.textContent =
-                'Unable to load your bookings right now. Please try again in a moment.';
+                "Unable to load your bookings right now. Please try again in a moment.";
         }
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     hookRegionSorter();
     hookSeasonSorter();
     hookTrainsCatalog();

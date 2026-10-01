@@ -38,11 +38,16 @@ export async function getAllBookings({
         filter.createdAt = {};
 
         if (startDate) {
-            filter.createdAt.$gte = new Date(`${startDate}T00:00:00.000Z`);
+            filter.createdAt.$gte = new Date(
+                `${startDate}T00:00:00.000Z`
+            );
         }
 
         if (endDate) {
-            const end = new Date(`${endDate}T00:00:00.000Z`);
+            const end = new Date(
+                `${endDate}T00:00:00.000Z`
+            );
+
             end.setUTCDate(end.getUTCDate() + 1);
 
             filter.createdAt.$lt = end;

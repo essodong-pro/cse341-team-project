@@ -263,7 +263,7 @@ router.get(
  *                 - field: startDate
  *                   message: startDate must be a valid date in YYYY-MM-DD format.
  *       500:
- *         description: Internal server error
+ *         description: Internal server error.
  */
 router.get("/bookings", getAllBookings);
 
