@@ -1,0 +1,19 @@
+<%- include('./partials/header') %>
+
+<section class="admin-dashboard">
+    <h1>Trip Admin</h1>
+
+    <p>Manage scenic railway trips.</p>
+
+    <div id="trip-message" role="status" aria-live="polite"></div>
+
+    <div id="trip-loading">Loading trips...</div>
+
+    <div id="trip-error" role="alert"></div>
+
+    <section id="trips-admin-list" aria-label="Trip administration">
+    </section>
+</section>
+
+<%- include('./partials/footer') %>
+<script src="/js/trips-admin.js"></script>

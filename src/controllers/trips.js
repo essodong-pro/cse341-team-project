@@ -1,7 +1,10 @@
 import {
     getAllTrips as fetchAllTrips,
-    getTripById as fetchTripById
+    getTripById as fetchTripById,
+    updateTrip as updateTripRecord,
+    deleteTrip as deleteTripRecord
 } from "../models/trips.js";
+import { getSchedulesByTripId } from "../models/schedules.js";
 
 // ==========================
 // API CONTROLLERS
@@ -36,6 +39,93 @@ export async function getTripById(req, res) {
         return res.status(200).json(trip);
     } catch (error) {
         console.error("Error fetching trip by ID:", error);
+
+        return res.status(500).json({
+            error: "Internal Server Error"
+        });
+    }
+}
+export async function updateTrip(req, res) {
+    try {
+        const { id } = req.params;
+        const body = req.body ?? {};
+
+        const allowedFields = [
+            "name",
+            "description",
+            "region",
+            "startStation",
+            "endStation",
+            "trainId",
+            "departureStation",
+            "arrivalStation",
+            "duration",
+            "distance",
+            "highlights",
+            "bestSeason",
+            "operatingMonths",
+            "imageUrl"
+        ];
+
+        const updates = {};
+
+        for (const field of allowedFields) {
+            if (body[field] !== undefined) {
+                updates[field] = body[field];
+            }
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({
+                error: "No valid fields to update."
+            });
+        }
+
+        const updatedTrip = await updateTripRecord(id, updates);
+
+        if (!updatedTrip) {
+            return res.status(404).json({
+                error: "Trip not found."
+            });
+        }
+
+        return res.status(200).json(updatedTrip);
+    } catch (error) {
+        console.error("Error updating trip:", error);
+
+        if (
+            error.name === "ValidationError" ||
+            error.name === "CastError"
+        ) {
+            return res.status(400).json({
+                error: "Please check the values you entered."
+            });
+        }
+
+        return res.status(500).json({
+            error: "Internal Server Error"
+        });
+    }
+}
+
+export async function deleteTrip(req, res) {
+    try {
+        const { id } = req.params;
+
+        const deletedTrip = await deleteTripRecord(id);
+
+        if (!deletedTrip) {
+            return res.status(404).json({
+                error: "Trip not found."
+            });
+        }
+
+        return res.status(200).json({
+            message: "Trip deleted.",
+            trip: deletedTrip
+        });
+    } catch (error) {
+        console.error("Error deleting trip:", error);
 
         return res.status(500).json({
             error: "Internal Server Error"
@@ -100,9 +190,14 @@ export async function renderTripDetails(req, res) {
             });
         }
 
+        const schedules = await getSchedulesByTripId(id);
+
         return res.render("trips/details", {
             title: "Trip Details",
-            details: trip
+            details: {
+    ...trip,
+    schedules
+}
         });
     } catch (error) {
         console.error(
@@ -116,4 +211,10 @@ export async function renderTripDetails(req, res) {
             stack: error.stack
         });
     }
+}
+
+export async function renderTripsAdmin(req, res) {
+    return res.render("trips-admin", {
+        title: "Trip Admin"
+    });
 }
