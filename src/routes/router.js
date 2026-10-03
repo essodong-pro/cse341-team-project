@@ -6,6 +6,7 @@ import {
     getSchedulesForTrip,
     getSchedulesForTripAndMonth
 } from "../controllers/schedules.js";
+import {
     renderBookingForm,
     processBookingRequest,
     renderBookingConfirmation,

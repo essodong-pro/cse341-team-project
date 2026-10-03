@@ -13,6 +13,8 @@ import {
     getSchedulesForTrip,
     getSchedulesForTripAndMonth
 } from "../controllers/schedules.js";
+
+import {
     getAllBookings,
     getBookingById
 } from "../controllers/bookings.js";
@@ -134,6 +136,7 @@ router.get(
     "/trips/:id/schedules/month",
     getSchedulesForTripAndMonth
 );
+/**
  *     responses:
  *       200:
  *         description: A single booking object
