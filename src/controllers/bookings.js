@@ -5,6 +5,7 @@ import {
     getBookingById as fetchBookingById
 } from "../models/bookings.js";
 import { getTripById as fetchTripById } from "../models/trips.js";
+import { getAllTicketClasses } from "../models/ticket-classes.js";
 
 // ==========================
 // API CONTROLLERS
@@ -12,9 +13,69 @@ import { getTripById as fetchTripById } from "../models/trips.js";
 
 export async function getAllBookings(req, res) {
     try {
-        const bookings = await fetchAllBookings();
+        const pageParam = req.query.page;
+        const limitParam = req.query.limit;
+        const sortParam = req.query.sort;
+        const orderParam = req.query.order;
 
-        return res.status(200).json(bookings);
+        const page = pageParam === undefined ? 1 : Number(pageParam);
+        const limit = limitParam === undefined ? 10 : Number(limitParam);
+        const sort = sortParam === undefined ? "createdAt" : sortParam;
+        const order = orderParam === undefined ? "desc" : orderParam;
+
+        const errors = [];
+
+        if (!Number.isInteger(page) || page < 1) {
+            errors.push({
+                field: "page",
+                message: "page must be a positive integer."
+            });
+        }
+
+        if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+            errors.push({
+                field: "limit",
+                message: "limit must be a number between 1 and 50."
+            });
+        }
+
+        const allowedSorts = ["createdAt"];
+
+        if (!allowedSorts.includes(sort)) {
+            errors.push({
+                field: "sort",
+                message: "sort must be createdAt."
+            });
+        }
+
+        if (!["asc", "desc"].includes(order)) {
+            errors.push({
+                field: "order",
+                message: "order must be asc or desc."
+            });
+        }
+
+        if (errors.length > 0) {
+            return res.status(400).json({
+                errors
+            });
+        }
+
+        const result = await fetchAllBookings({
+            page,
+            limit,
+            sort,
+            order
+        });
+
+        return res.status(200).json({
+            data: result.data,
+            query: {
+                sort,
+                order
+            },
+            pagination: result.pagination
+        });
     } catch (error) {
         console.error("Error fetching bookings:", error);
 
@@ -61,7 +122,9 @@ export async function renderBookingForm(req, res) {
     const { scheduleId } = req.params;
 
     const db = getDb();
-    const schedule = await db.collection('schedules').findOne({ id: Number(scheduleId) });
+    const schedule = await db.collection("schedules").findOne({
+        id: Number(scheduleId)
+    });
 
     if (!schedule) {
         return res.status(404).render("errors/404", {
@@ -79,7 +142,8 @@ export async function renderBookingForm(req, res) {
         });
     }
 
-    const ticketClasses = await db.collection('ticketClasses').find({}).toArray();
+    const ticketClasses = await getAllTicketClasses();
+
     const ticketOptions = ticketClasses.map((ticketClass) => ({
         class: ticketClass.class,
         name: ticketClass.name,
@@ -88,8 +152,8 @@ export async function renderBookingForm(req, res) {
         description: ticketClass.description
     }));
 
-    return res.render('trips/book', {
-        title: 'Book Trip',
+    return res.render("trips/book", {
+        title: "Book Trip",
         schedule,
         trip,
         ticketOptions
@@ -97,32 +161,53 @@ export async function renderBookingForm(req, res) {
 }
 
 export async function processBookingRequest(req, res) {
-    const { tripId, ticketClass: ticketClassSlug, passengers } = req.body;
+    const {
+        tripId,
+        ticketClass: ticketClassSlug,
+        passengers
+    } = req.body;
 
     if (!Array.isArray(passengers) || passengers.length === 0) {
-        return renderBadRequest(res, "At least one passenger is required to complete a booking.");
+        return renderBadRequest(
+            res,
+            "At least one passenger is required to complete a booking."
+        );
     }
 
     const hasIncompletePassenger = passengers.some((passenger) => (
-        !passenger.firstName || !passenger.lastName || !passenger.email || !passenger.phone
+        !passenger.firstName ||
+        !passenger.lastName ||
+        !passenger.email ||
+        !passenger.phone
     ));
 
     if (hasIncompletePassenger) {
-        return renderBadRequest(res, "Each passenger must include a first name, last name, email, and phone number.");
+        return renderBadRequest(
+            res,
+            "Each passenger must include a first name, last name, email, and phone number."
+        );
     }
 
     const trip = await fetchTripById(tripId);
 
     if (!trip) {
-        return renderBadRequest(res, "The selected trip could not be found.");
+        return renderBadRequest(
+            res,
+            "The selected trip could not be found."
+        );
     }
 
     const db = getDb();
 
-    const ticketClass = await db.collection('ticketClasses').findOne({ class: ticketClassSlug });
+    const ticketClass = await db.collection("ticketClasses").findOne({
+        class: ticketClassSlug
+    });
 
     if (!ticketClass) {
-        return renderBadRequest(res, "The selected ticket class could not be found.");
+        return renderBadRequest(
+            res,
+            "The selected ticket class could not be found."
+        );
     }
 
     const pricePerTicket = trip.distance * ticketClass.pricePerKm;
@@ -158,8 +243,8 @@ export async function renderBookingConfirmation(req, res) {
         });
     }
 
-    return res.render('trips/confirm', {
-        title: 'Trip Confirmation',
+    return res.render("trips/confirm", {
+        title: "Trip Confirmation",
         confirmation: {
             ...booking,
             tripName: trip.name
@@ -168,7 +253,7 @@ export async function renderBookingConfirmation(req, res) {
 }
 
 export function renderBookingsAdmin(req, res) {
-    return res.render('bookings', {
-        title: 'Bookings Admin'
+    return res.render("bookings", {
+        title: "Bookings Admin"
     });
 }

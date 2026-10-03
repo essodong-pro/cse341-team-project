@@ -121,6 +121,39 @@
             }
         }
     }
+
+    .bookings-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-md);
+        margin-top: var(--space-xl);
+    }
+
+    .bookings-pagination-button {
+        padding: var(--space-sm) var(--space-lg);
+        border: 1px solid var(--clr-primary);
+        border-radius: var(--radius-md);
+        background-color: var(--clr-primary);
+        color: var(--clr-text-alt-primary);
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .bookings-pagination-button:hover:not(:disabled) {
+        background-color: var(--clr-accent);
+    }
+
+    .bookings-pagination-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .bookings-page-status {
+        color: var(--clr-text-primary);
+        font-weight: 500;
+        white-space: nowrap;
+    }
 }
 
 @media (min-width: 768px) {

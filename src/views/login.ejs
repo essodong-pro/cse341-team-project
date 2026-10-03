@@ -1,0 +1,30 @@
+<%- include('./partials/header') %>
+
+<section class="auth-container">
+    <h1>Login</h1>
+    <% if (typeof error !== 'undefined') { %>
+    <p style="color:red;">
+        <%= error %>
+    </p>
+    <% } %> 
+
+    <form action="/login" method="POST">
+
+        <label>
+            Email
+            <input type="email" name="email" required>
+        </label>
+
+        <label>
+            Password
+            <input type="password" name="password" required>
+        </label>
+
+        <button type="submit">
+            Login
+        </button>
+
+    </form>
+</section>
+
+<%- include('./partials/footer') %>

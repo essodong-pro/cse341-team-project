@@ -389,24 +389,80 @@
     };
 
     // Event Listeners
-    selectedDayLabels.forEach((label) => {
-        label.addEventListener('click', (e) => {
-            e.preventDefault();
-            const label = e.currentTarget;
+const updateTicketAvailability = async (day) => {
+    try {
+        const response = await fetch(`/api/ticket-classes?day=${encodeURIComponent(day)}`);
 
-            // Update visual and input selection
-            selectedDayLabels.forEach((lbl) => {
-                lbl.classList.remove('selected');
-                lbl.querySelector('input').checked = false;
-                lbl.querySelector('input').removeAttribute('checked');
-            });
+        if (!response.ok) {
+            throw new Error('Unable to fetch ticket classes');
+        }
 
-            label.classList.add('selected');
-            label.querySelector('input').checked = true;
-            label.querySelector('input').setAttribute('checked', true);
+        const availableClasses = await response.json();
+        const availableClassNames = availableClasses.map(
+            (ticketClass) => ticketClass.class
+        );
+
+        let selectedTicketStillAvailable = false;
+
+        ticketRadios.forEach((radio) => {
+            const ticketCard = radio.closest('.ticket-card');
+            const isAvailable = availableClassNames.includes(radio.value);
+
+            radio.disabled = !isAvailable;
+
+            if (isAvailable) {
+                ticketCard.classList.remove('unavailable');
+                ticketCard.style.opacity = '1';
+                ticketCard.style.cursor = 'pointer';
+
+                if (radio.checked) {
+                    selectedTicketStillAvailable = true;
+                }
+            } else {
+                ticketCard.classList.add('unavailable');
+                ticketCard.style.opacity = '0.5';
+                ticketCard.style.cursor = 'not-allowed';
+                radio.checked = false;
+            }
         });
-    });
 
+        if (!selectedTicketStillAvailable) {
+            const firstAvailableRadio = Array.from(ticketRadios).find(
+                (radio) => !radio.disabled
+            );
+
+            if (firstAvailableRadio) {
+                firstAvailableRadio.checked = true;
+                firstAvailableRadio.dispatchEvent(new Event('change'));
+            }
+        }
+    } catch (error) {
+        console.error('Error updating ticket availability:', error);
+    }
+};
+
+selectedDayLabels.forEach((label) => {
+    label.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        const selectedLabel = e.currentTarget;
+        const selectedInput = selectedLabel.querySelector('input');
+
+        selectedDayLabels.forEach((lbl) => {
+            lbl.classList.remove('selected');
+
+            const input = lbl.querySelector('input');
+            input.checked = false;
+            input.removeAttribute('checked');
+        });
+
+        selectedLabel.classList.add('selected');
+        selectedInput.checked = true;
+        selectedInput.setAttribute('checked', true);
+
+        updateTicketAvailability(selectedInput.value);
+    });
+});
     addPassengerBtn.addEventListener('click', addPassenger);
 
     passengersList.addEventListener('click', (e) => {
@@ -453,6 +509,12 @@
         ticketPrice = parseInt(selectedRadio.dataset.price);
     }
     updateSummary();
+
+    const initialDay = document.querySelector('input[name="selectedDay"]:checked');
+
+    if (initialDay) {
+        updateTicketAvailability(initialDay.value);
+    }
 </script>
 
 <%- include('../partials/footer') %>

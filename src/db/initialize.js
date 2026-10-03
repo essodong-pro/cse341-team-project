@@ -4,6 +4,11 @@ import stations from './seeds/stations.json' with { type: 'json' };
 import ticketClasses from './seeds/ticket-classes.json' with { type: 'json' };
 import trains from './seeds/trains.json' with { type: 'json' };
 
+import bcrypt from 'bcrypt';
+
+import Role from "../models/schemas/role.js";
+import User from "../models/schemas/user.js";
+
 const starterCollections = [
   ['trips', trips],
   ['schedules', schedules],
@@ -19,13 +24,50 @@ const initializeDatabase = async (db) => {
 
   for (const [collectionName, documents] of starterCollections) {
     const collection = db.collection(collectionName);
+
     await collection.deleteMany({});
     await collection.insertMany(documents);
   }
 
+  await Role.deleteMany({});
+
+  const roles = await Role.insertMany([
+    { name: "admin" },
+    { name: "customer" }
+  ]);
+
+  const adminRole = roles.find((role) => role.name === "admin");
+  const customerRole = roles.find((role) => role.name === "customer");
+
+  await User.deleteMany({});
+
+  const passwordHash = await bcrypt.hash("Password123!", 12);
+
+  await User.insertMany([
+    {
+      displayName: "Admin User",
+      username: "admin",
+      email: "admin@kizunarail.com",
+      passwordHash,
+      role: adminRole._id
+    },
+    {
+      displayName: "Test Customer",
+      username: "customer",
+      email: "customer@kizunarail.com",
+      passwordHash,
+      role: customerRole._id
+    }
+  ]);
+
   const bookings = db.collection('bookings');
+
   await bookings.deleteMany({});
-  await bookings.createIndex({ id: 1 }, { unique: true });
+
+  await bookings.createIndex(
+    { id: 1 },
+    { unique: true }
+  );
 };
 
 export { initializeDatabase, starterCollections };
