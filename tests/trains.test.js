@@ -82,4 +82,26 @@ describe('GET /api/trains', () => {
 
     expect(response.status).toBe(400);
   });
+    test('searches trains by name or operator', async () => {
+    const response = await request(app).get('/api/trains?search=E353');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'series-e353',
+          name: 'Series E353 Limited Express'
+        })
+      ])
+    );
+    expect(response.body.search).toBe('E353');
+  });
+
+  test('returns an empty array when no train matches the search', async () => {
+    const response = await request(app).get('/api/trains?search=NoSuchTrain');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.search).toBe('NoSuchTrain');
+  });
 });
