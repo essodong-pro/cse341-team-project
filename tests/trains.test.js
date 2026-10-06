@@ -4,21 +4,32 @@ import app from '../app.js';
 import { getDb } from '../src/db/connect.js';
 
 describe('GET /api/trains', () => {
-  test('returns a successful JSON response', async () => {
+  test('returns paginated JSON response with metadata', async () => {
     const response = await request(app).get('/api/trains');
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toContain('application/json');
-    expect(response.body).toHaveProperty('trains');
-    expect(response.body.trains).toBeInstanceOf(Array);
+    expect(response.body).toHaveProperty('data');
+    expect(response.body.data).toBeInstanceOf(Array);
+    expect(response.body).toHaveProperty('pagination');
+    expect(response.body.pagination).toEqual(
+      expect.objectContaining({
+        page: 1,
+        limit: 10,
+        totalItems: 4,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false
+      })
+    );
   });
 
   test('returns the trains from the starter data', async () => {
     const response = await request(app).get('/api/trains');
 
     expect(response.status).toBe(200);
-    expect(response.body.trains).toHaveLength(4);
-    expect(response.body.trains).toEqual(
+    expect(response.body.data).toHaveLength(4);
+    expect(response.body.data).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'series-e353',
@@ -39,7 +50,7 @@ describe('GET /api/trains', () => {
     const response = await request(app).get('/api/trains');
 
     expect(response.status).toBe(200);
-    expect(response.body.trains).toEqual(
+    expect(response.body.data).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'test-express',
@@ -47,5 +58,28 @@ describe('GET /api/trains', () => {
         })
       ])
     );
+  });
+
+  test('returns the requested page and limit', async () => {
+    const response = await request(app).get('/api/trains?page=1&limit=2');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(2);
+    expect(response.body.pagination).toEqual(
+      expect.objectContaining({
+        page: 1,
+        limit: 2,
+        totalItems: 4,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false
+      })
+    );
+  });
+
+  test('returns 400 for invalid pagination values', async () => {
+    const response = await request(app).get('/api/trains?page=0&limit=51');
+
+    expect(response.status).toBe(400);
   });
 });
