@@ -26,6 +26,7 @@ import {
 
 import {
     getUsers,
+    getUserById,
     updateUserById,
     deleteUserById
 } from "../controllers/users.js";
@@ -326,6 +327,44 @@ router.get("/bookings/:id", getBookingById);
  *         description: Internal server error
  */
 router.get("/users", requireApiLogin, getUsers);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Returns a user by ID
+ *     description: Any user can read their own record. Admins can read any user.
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: A single user (the password hash is never included)
+ *         content:
+ *           application/json:
+ *             example:
+ *               _id: 66f1a2b3c4d5e6f7a8b9c0d1
+ *               displayName: Ada Lovelace
+ *               username: ada
+ *               email: ada@example.com
+ *               role: customer
+ *       400:
+ *         description: Invalid user id
+ *       401:
+ *         description: Not logged in
+ *       403:
+ *         description: Not allowed to read this user
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/users/:id", requireApiLogin, requireApiSelfOrAdmin, getUserById);
 
 /**
  * @swagger
