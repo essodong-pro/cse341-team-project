@@ -38,10 +38,28 @@ const router = express.Router();
  * @swagger
  * /api/trains:
  *   get:
- *     summary: Returns all trains
+ *     summary: Returns paginated trains
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Number of trains per page.
  *     responses:
  *       200:
- *         description: A list of trains
+ *         description: A paginated list of trains
+ *       400:
+ *         description: Invalid pagination parameters
  */
 router.get("/trains", getAllTrains);
 
