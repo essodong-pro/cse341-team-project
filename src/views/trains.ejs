@@ -12,6 +12,11 @@
     <div class="trains-state trains-error" id="trains-error" hidden></div>
 
     <div class="trains-grid" id="trains-list"></div>
+    <nav class="trains-pagination" id="trains-pagination" aria-label="Train list pages" hidden>
+    <button type="button" class="train-button" data-page-action="previous">Previous</button>
+    <p class="trains-page-status" id="trains-page-status" aria-live="polite"></p>
+    <button type="button" class="train-button" data-page-action="next">Next</button>
+</nav>
 
     <template id="train-card-template">
         <article class="train-card">
