@@ -16,11 +16,21 @@ const trainsApi = async (req, res, next) => {
         }
 
         const collection = getDb().collection('trains');
-        const totalItems = await collection.countDocuments();
+        const search = req.query.search?.trim() || '';
+        const filter = search
+    ? {
+        $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { operator: { $regex: search, $options: 'i' } }
+        ]
+    }
+    : {};
+
+const totalItems = await collection.countDocuments(filter);
         const totalPages = Math.ceil(totalItems / limit);
 
         const trains = await collection
-            .find({})
+            .find(filter)
             .sort({ _id: 1 })
             .skip((page - 1) * limit)
             .limit(limit)
@@ -28,6 +38,7 @@ const trainsApi = async (req, res, next) => {
 
         return res.json({
             data: trains,
+            search,
             pagination: {
                 page,
                 limit,
