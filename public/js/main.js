@@ -120,8 +120,7 @@ const hookBookingsCatalog = async () => {
         }
 
         const bookings = await bookingsResponse.json();
-        const trips = await tripsResponse.json();
-
+        const { data: trips } = await tripsResponse.json();
         const tripNamesById = new Map(
             trips.map((trip) => [trip.id, trip.name])
         );
@@ -215,7 +214,7 @@ const hookUserDashboard = async () => {
         }
 
         const bookings = await bookingsResponse.json();
-        const trips = await tripsResponse.json();
+        const { data: trips } = await tripsResponse.json();
 
         const tripNamesById = new Map(
             trips.map((trip) => [String(trip.id), trip.name])
