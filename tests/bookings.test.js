@@ -1052,6 +1052,34 @@ describe("GET /api/bookings/:id", () => {
     expect(response.body.tripId).toBe("alpine-panorama");
   });
 
+  test("returns the complete booking details for an existing booking", async () => {
+    const created = await createBooking({
+      scheduleId: "1",
+      tripId: "alpine-panorama",
+      ticketClass: "standard",
+      selectedDay: "monday",
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app).get(
+      `/api/bookings/${created.id}`
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: created.id,
+      scheduleId: "1",
+      tripId: "alpine-panorama",
+      ticketClass: "standard",
+      selectedDay: "monday",
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+  });
+
   test("returns 404 for an unknown id", async () => {
     const response = await request(app).get(
       "/api/bookings/does-not-exist"
