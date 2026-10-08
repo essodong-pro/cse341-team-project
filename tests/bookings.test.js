@@ -1080,6 +1080,26 @@ describe("GET /api/bookings/:id", () => {
     });
   });
 
+
+  test("returns 500 with a JSON error when the model throws", async () => {
+    const spy = vi
+      .spyOn(bookingsModel, "getBookingById")
+      .mockRejectedValueOnce(new Error("boom"));
+
+    try {
+      const response = await request(app).get(
+        "/api/bookings/test-booking-id"
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: "Internal Server Error"
+      });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   test("returns 404 for an unknown id", async () => {
     const response = await request(app).get(
       "/api/bookings/does-not-exist"
