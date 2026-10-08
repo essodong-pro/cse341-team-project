@@ -129,6 +129,7 @@
 
                 const selectedRegion = urlParams.get("region") || "all";
                 const selectedSeason = urlParams.get("season") || "all";
+                searchInput.value = urlParams.get("q") || "";
 
                 // Set the dropdowns to match the URL.
                 if (
