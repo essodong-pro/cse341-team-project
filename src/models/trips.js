@@ -19,11 +19,11 @@ export async function getPaginatedTrips({
 
     const filter = {};
 
-    if (region && region !== "all") {
+    if (typeof region === "string" && region !== "all") {
         filter.region = region;
-        }
+    }
 
-    if (season && season !== "all") {
+    if (typeof season === "string" && season !== "all") {
         filter.bestSeason = season.toLowerCase();
     }
     
