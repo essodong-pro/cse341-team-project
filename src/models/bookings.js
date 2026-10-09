@@ -4,6 +4,7 @@ import { generateConfirmationCode } from "../includes/helpers.js";
 export async function createBooking(bookingData) {
     const booking = await Booking.create({
         id: generateConfirmationCode(),
+        userId: bookingData.userId ?? null,
         scheduleId: bookingData.scheduleId,
         tripId: bookingData.tripId,
         ticketClass: bookingData.ticketClass,
@@ -51,4 +52,44 @@ export async function getAllBookings({
 
 export async function getBookingById(id) {
     return Booking.findOne({ id }).lean();
+}
+
+export async function updateBooking(id, updates) {
+    const allowedFields = [
+        "scheduleId",
+        "tripId",
+        "ticketClass",
+        "selectedDay",
+        "passengers",
+    ];
+
+    const safeUpdates = {};
+
+    for (const field of allowedFields) {
+        if (Object.hasOwn(updates, field)) {
+            safeUpdates[field] = updates[field];
+        }
+    }
+
+    if (Object.keys(safeUpdates).length === 0) {
+        return null;
+    }
+
+    const booking = await Booking.findOne({ id });
+
+    if (!booking) {
+        return null;
+    }
+
+    Object.assign(booking, safeUpdates);
+
+    await booking.save();
+
+    return booking.toObject();
+}
+
+export async function deleteBooking(id) {
+    const result = await Booking.findOneAndDelete({ id });
+
+    return result ? result.toObject() : null;
 }

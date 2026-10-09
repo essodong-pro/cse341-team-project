@@ -40,6 +40,12 @@ const bookingSchema = new mongoose.Schema(
             trim: true,
         },
 
+        userId: {
+            type: String,
+            trim: true,
+            default: null,
+        },
+
         scheduleId: {
             type: String,
             required: true,

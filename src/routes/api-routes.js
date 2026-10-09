@@ -3,27 +3,25 @@ import {
     getAllTrains,
     getTrainById
 } from "../controllers/trains.js";
-
 import {
     getAllTrips,
     getTripById
 } from "../controllers/trips.js";
-
 import {
     getAllTicketClasses,
     getTicketClassesForDay
 } from "../controllers/ticket-classes.js";
-
 import {
     getSchedulesForTrip,
     getSchedulesForTripAndMonth
 } from "../controllers/schedules.js";
-
 import {
     getAllBookings,
-    getBookingById
+    getBookingById,
+    createBookingApi,
+    updateBookingApi,
+    deleteBookingApi
 } from "../controllers/bookings.js";
-
 import {
     getUsers,
     updateUserById,
@@ -31,25 +29,45 @@ import {
 } from "../controllers/users.js";
 import { requireApiLogin } from "../middleware/auth.js";
 import { requireApiSelfOrAdmin } from "../middleware/ownership.js";
+import { requireBookingOwnerOrAdmin } from "../middleware/booking-ownership.js";
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/trains:
+ * tags:
+ *   - name: Trains
+ *     description: Train information
+ *   - name: Trips
+ *     description: Train trips
+ *   - name: Ticket Classes
+ *     description: Ticket class information
+ *   - name: Schedules
+ *     description: Trip schedules
+ *   - name: Bookings
+ *     description: Booking management
+ *   - name: Users
+ *     description: User management
+ */
+
+/**
+ * @swagger
+ * /trains:
  *   get:
- *     summary: Returns all trains
+ *     summary: Get all trains
+ *     tags: [Trains]
  *     responses:
  *       200:
- *         description: A list of trains
+ *         description: List of trains
  */
 router.get("/trains", getAllTrains);
 
 /**
  * @swagger
- * /api/trains/{id}:
+ * /trains/{id}:
  *   get:
- *     summary: Returns a train by ID
+ *     summary: Get a train by ID
+ *     tags: [Trains]
  *     parameters:
  *       - in: path
  *         name: id
@@ -58,26 +76,30 @@ router.get("/trains", getAllTrains);
  *           type: string
  *     responses:
  *       200:
- *         description: A single train object
+ *         description: Train found
+ *       404:
+ *         description: Train not found
  */
 router.get("/trains/:id", getTrainById);
 
 /**
  * @swagger
- * /api/trips:
+ * /trips:
  *   get:
- *     summary: Returns all trips
+ *     summary: Get all trips
+ *     tags: [Trips]
  *     responses:
  *       200:
- *         description: A list of trips
+ *         description: List of trips
  */
 router.get("/trips", getAllTrips);
 
 /**
  * @swagger
- * /api/trips/{id}:
+ * /trips/{id}:
  *   get:
- *     summary: Returns a trip by ID
+ *     summary: Get a trip by ID
+ *     tags: [Trips]
  *     parameters:
  *       - in: path
  *         name: id
@@ -86,35 +108,28 @@ router.get("/trips", getAllTrips);
  *           type: string
  *     responses:
  *       200:
- *         description: A single trip object
+ *         description: Trip found
+ *       404:
+ *         description: Trip not found
  */
 router.get("/trips/:id", getTripById);
 
 /**
  * @swagger
- * /api/ticket-classes:
+ * /ticket-classes:
  *   get:
- *     summary: Returns ticket classes
+ *     summary: Get ticket classes
+ *     tags: [Ticket Classes]
  *     parameters:
  *       - in: query
  *         name: day
  *         required: false
  *         schema:
  *           type: string
- *           enum:
- *             - monday
- *             - tuesday
- *             - wednesday
- *             - thursday
- *             - friday
- *             - saturday
- *             - sunday
- *         description: Return only ticket classes available on the selected day.
+ *         description: Optional day used to filter ticket classes
  *     responses:
  *       200:
- *         description: A list of ticket classes
- *       400:
- *         description: Invalid day
+ *         description: List of ticket classes
  */
 router.get("/ticket-classes", (req, res, next) => {
     if (req.query.day) {
@@ -126,9 +141,10 @@ router.get("/ticket-classes", (req, res, next) => {
 
 /**
  * @swagger
- * /api/trips/{id}/schedules:
+ * /trips/{id}/schedules:
  *   get:
- *     summary: Returns schedules for a trip
+ *     summary: Get schedules for a trip
+ *     tags: [Schedules]
  *     parameters:
  *       - in: path
  *         name: id
@@ -137,92 +153,52 @@ router.get("/ticket-classes", (req, res, next) => {
  *           type: string
  *     responses:
  *       200:
- *         description: List of schedules
+ *         description: List of schedules for the trip
  */
-router.get(
-    "/trips/:id/schedules",
-    getSchedulesForTrip
-);
+router.get("/trips/:id/schedules", getSchedulesForTrip);
 
 /**
  * @swagger
- * /api/trips/{id}/schedules/month:
+ * /trips/{id}/schedules/month:
  *   get:
- *     summary: Returns schedules for a trip and month
+ *     summary: Get schedules for a trip in a month
+ *     tags: [Schedules]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
- *           type: number
+ *           type: string
  *       - in: query
  *         name: month
- *         required: false
+ *         required: true
  *         schema:
- *           type: number
+ *           type: string
+ *         description: Month to search
  *     responses:
  *       200:
- *         description: List of schedules
+ *         description: List of schedules for the requested month
  */
-router.get(
-    "/trips/:id/schedules/month",
-    getSchedulesForTripAndMonth
-);
+router.get("/trips/:id/schedules/month", getSchedulesForTripAndMonth);
 
 /**
  * @swagger
- * /api/bookings:
+ * /bookings:
  *   get:
- *     summary: Returns a paginated list of bookings
- *     parameters:
- *       - in: query
- *         name: page
- *         required: false
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Which page of bookings to return.
- *       - in: query
- *         name: limit
- *         required: false
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 50
- *           default: 10
- *         description: How many bookings to return per page.
- *       - in: query
- *         name: sort
- *         required: false
- *         schema:
- *           type: string
- *           enum: [createdAt]
- *           default: createdAt
- *         description: Field used to sort bookings. Defaults to booking date.
- *       - in: query
- *         name: order
- *         required: false
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *           default: desc
- *         description: Sort direction.
+ *     summary: Get all bookings
+ *     tags: [Bookings]
  *     responses:
  *       200:
- *         description: A page of bookings with pagination metadata.
- *       400:
- *         description: Invalid pagination or sorting parameters.
- *       500:
- *         description: Internal server error.
+ *         description: List of bookings
  */
 router.get("/bookings", getAllBookings);
 
 /**
  * @swagger
- * /api/bookings/{id}:
+ * /bookings/{id}:
  *   get:
- *     summary: Returns a booking by ID
+ *     summary: Get a booking by ID
+ *     tags: [Bookings]
  *     parameters:
  *       - in: path
  *         name: id
@@ -231,110 +207,61 @@ router.get("/bookings", getAllBookings);
  *           type: string
  *     responses:
  *       200:
- *         description: A single booking object
+ *         description: Booking found
  *       404:
  *         description: Booking not found
- *       500:
- *         description: Internal server error
  */
 router.get("/bookings/:id", getBookingById);
 
 /**
  * @swagger
- * /api/users:
- *   get:
- *     summary: Returns a page of users, optionally searched and filtered by role
- *     description: Admins can page through every user. Other users only ever receive their own record. Results are sorted by username by default.
+ * /bookings:
+ *   post:
+ *     summary: Create a booking
+ *     tags: [Bookings]
  *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Which page of results to return.
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 50
- *           default: 10
- *         description: How many users to return per page.
- *       - in: query
- *         name: sort
- *         schema:
- *           type: string
- *           enum: [username, displayName, email, createdAt]
- *           default: username
- *       - in: query
- *         name: order
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *           default: asc
- *       - in: query
- *         name: q
- *         schema:
- *           type: string
- *           minLength: 1
- *           maxLength: 100
- *         description: Searches display name, username, and email as a whole-word phrase, case-insensitive (e.g. "lovelace" or "ada@example.com"). Common words like "the" are ignored.
- *       - in: query
- *         name: role
- *         schema:
- *           type: string
- *           enum: [admin, customer]
- *         description: Only return users with this role.
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - scheduleId
+ *               - tripId
+ *               - ticketClass
+ *               - selectedDay
+ *               - passengers
+ *             properties:
+ *               scheduleId:
+ *                 type: integer
+ *               tripId:
+ *                 type: string
+ *               ticketClass:
+ *                 type: string
+ *               selectedDay:
+ *                 type: string
+ *               passengers:
+ *                 type: integer
  *     responses:
- *       200:
- *         description: A page of users (password hashes are never included) with the query that ran and pagination metadata
- *         content:
- *           application/json:
- *             example:
- *               data:
- *                 - _id: 66f1a2b3c4d5e6f7a8b9c0d1
- *                   displayName: Ada Lovelace
- *                   username: ada
- *                   email: ada@example.com
- *                   role: customer
- *               query:
- *                 sort: username
- *                 order: asc
- *                 q: lovelace
- *                 role: customer
- *               pagination:
- *                 page: 1
- *                 limit: 10
- *                 totalItems: 13
- *                 totalPages: 2
- *                 hasNextPage: true
- *                 hasPreviousPage: false
+ *       201:
+ *         description: Booking created
  *       400:
- *         description: Invalid page, limit, sort, order, q, or role
- *         content:
- *           application/json:
- *             example:
- *               errors:
- *                 - field: limit
- *                   message: limit must be a number between 1 and 50.
+ *         description: Invalid booking data
  *       401:
- *         description: Not logged in
- *       500:
- *         description: Internal server error
+ *         description: Authentication required
  */
-router.get("/users", requireApiLogin, getUsers);
+router.post("/bookings", requireApiLogin, createBookingApi);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /bookings/{id}:
  *   put:
- *     summary: Updates a user
- *     description: Any user can update their own record. Admins can update any user and change roles. The last admin cannot be demoted.
+ *     summary: Update a booking
+ *     tags: [Bookings]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -348,42 +275,90 @@ router.get("/users", requireApiLogin, getUsers);
  *           schema:
  *             type: object
  *             properties:
- *               displayName:
+ *               scheduleId:
+ *                 type: integer
+ *               tripId:
  *                 type: string
- *               username:
+ *               ticketClass:
  *                 type: string
- *               email:
+ *               selectedDay:
  *                 type: string
- *               role:
- *                 type: string
- *                 enum: [admin, customer]
- *                 description: Admins only. Ignored for other users.
+ *               passengers:
+ *                 type: integer
  *     responses:
  *       200:
- *         description: The updated user
+ *         description: Booking updated
  *       400:
- *         description: Invalid id or invalid input
+ *         description: Invalid booking data
  *       401:
- *         description: Not logged in
+ *         description: Authentication required
  *       403:
- *         description: Not allowed to update this user
+ *         description: Not authorized to update this booking
  *       404:
- *         description: User not found
- *       409:
- *         description: Email or username already in use, or this would remove the last admin
- *       500:
- *         description: Internal server error
+ *         description: Booking not found
  */
-router.put("/users/:id", requireApiLogin, requireApiSelfOrAdmin, updateUserById);
+router.put(
+    "/bookings/:id",
+    requireApiLogin,
+    requireBookingOwnerOrAdmin,
+    updateBookingApi
+);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /bookings/{id}:
  *   delete:
- *     summary: Deletes a user
- *     description: Any user can delete their own account (their session is ended). Admins can delete any user. The last admin cannot be deleted.
+ *     summary: Delete a booking
+ *     tags: [Bookings]
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: Booking deleted
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Not authorized to delete this booking
+ *       404:
+ *         description: Booking not found
+ */
+router.delete(
+    "/bookings/:id",
+    requireApiLogin,
+    requireBookingOwnerOrAdmin,
+    deleteBookingApi
+);
+
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get users
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       401:
+ *         description: Authentication required
+ */
+router.get("/users", requireApiLogin, getUsers);
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   put:
+ *     summary: Update a user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -392,20 +367,50 @@ router.put("/users/:id", requireApiLogin, requireApiSelfOrAdmin, updateUserById)
  *           type: string
  *     responses:
  *       200:
- *         description: User deleted. loggedOut is true when the user deleted their own account.
- *       400:
- *         description: Invalid user id
+ *         description: User updated
  *       401:
- *         description: Not logged in
+ *         description: Authentication required
  *       403:
- *         description: Not allowed to delete this user
+ *         description: Not authorized
  *       404:
  *         description: User not found
- *       409:
- *         description: This would remove the last admin
- *       500:
- *         description: Internal server error
  */
-router.delete("/users/:id", requireApiLogin, requireApiSelfOrAdmin, deleteUserById);
+router.put(
+    "/users/:id",
+    requireApiLogin,
+    requireApiSelfOrAdmin,
+    updateUserById
+);
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   delete:
+ *     summary: Delete a user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       204:
+ *         description: User deleted
+ *       401:
+ *         description: Authentication required
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: User not found
+ */
+router.delete(
+    "/users/:id",
+    requireApiLogin,
+    requireApiSelfOrAdmin,
+    deleteUserById
+);
 
 export default router;
