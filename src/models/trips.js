@@ -12,7 +12,7 @@ export async function getPaginatedTrips(page, limit) {
     const skip = (page - 1) * limit;
 
     const [trips, totalItems] = await Promise.all([
-        Trip.find(filter)
+        Trip.find({})
             .sort({ id: 1 })
             .skip(skip)
             .limit(limit)
