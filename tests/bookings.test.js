@@ -481,6 +481,55 @@ describe('booking EJS pages', () => {
       'Each passenger must include'
     );
   });
+ 
+
+  test('POST /bookings does not create a booking when passenger data is incomplete', async () => {
+    const db = getDb();
+    const bookingsBefore = await db.collection('bookings').countDocuments();
+
+    const response = await request(app)
+      .post('/bookings')
+      .send({
+        scheduleId: '1',
+        tripId: 'alpine-panorama',
+        ticketClass: 'standard',
+        selectedDay: 'monday',
+        passengers: [{ firstName: 'Ada' }]
+      });
+
+    const bookingsAfter = await db.collection('bookings').countDocuments();
+
+    expect(response.status).toBe(400);
+    expect(bookingsAfter).toBe(bookingsBefore);
+  });
+
+  test('POST /bookings saves passenger and booking details to the database', async () => {
+    const response = await request(app)
+      .post('/bookings')
+      .send({
+        scheduleId: '1',
+        tripId: 'alpine-panorama',
+        ticketClass: 'standard',
+        selectedDay: 'monday',
+        passengers: samplePassengers
+      });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toMatch(/^\/bookings\/JR/);
+
+    const bookingId = response.headers.location.split('/').pop();
+    const booking = await getBookingById(bookingId);
+
+    expect(booking).not.toBeNull();
+    expect(booking.id).toBe(bookingId);
+    expect(booking.tripId).toBe('alpine-panorama');
+    expect(booking.ticketClass).toBe('standard');
+    expect(booking.passengers).toHaveLength(1);
+    expect(booking.passengers[0].firstName).toBe('Ada');
+    expect(booking.passengers[0].lastName).toBe('Lovelace');
+    expect(booking.passengers[0].email).toBe('ada@example.com');
+    expect(booking.totalPrice).toBe(14400);
+  }); 
 
   test('POST /bookings creates a booking and redirects to its confirmation page', async () => {
     const response = await request(app)
