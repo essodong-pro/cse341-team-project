@@ -38,7 +38,11 @@ const router = express.Router();
  * @swagger
  * /api/trains:
  *   get:
+ 43-trains-search
  *     summary: Returns paginated trains with keyword search
+
+ *     summary: Returns paginated trains
+ 43-trains-pagination
  *     parameters:
  *       - in: query
  *         name: page
@@ -55,11 +59,14 @@ const router = express.Router();
  *           maximum: 50
  *           default: 10
  *         description: Number of trains per page.
+ 43-trains-search
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
  *         description: Keyword to search train names or operators.
+
+43-trains-pagination
  *     responses:
  *       200:
  *         description: A paginated list of trains
@@ -177,7 +184,7 @@ router.get(
  *         name: id
  *         required: true
  *         schema:
- *           type: string
+ *           type: number
  *       - in: query
  *         name: month
  *         required: false
@@ -196,12 +203,48 @@ router.get(
  * @swagger
  * /api/bookings:
  *   get:
- *     summary: Returns all bookings
+ *     summary: Returns a paginated list of bookings
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Which page of bookings to return.
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: How many bookings to return per page.
+ *       - in: query
+ *         name: sort
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [createdAt]
+ *           default: createdAt
+ *         description: Field used to sort bookings. Defaults to booking date.
+ *       - in: query
+ *         name: order
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort direction.
  *     responses:
  *       200:
- *         description: A list of bookings
+ *         description: A page of bookings with pagination metadata.
+ *       400:
+ *         description: Invalid pagination or sorting parameters.
  *       500:
- *         description: Internal server error
+ *         description: Internal server error.
  */
 router.get("/bookings", getAllBookings);
 

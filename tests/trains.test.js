@@ -82,6 +82,7 @@ describe('GET /api/trains', () => {
 
     expect(response.status).toBe(400);
   });
+ 43-trains-search
     test('searches trains by name or operator', async () => {
     const response = await request(app).get('/api/trains?search=E353');
 
@@ -104,4 +105,6 @@ describe('GET /api/trains', () => {
     expect(response.body.data).toEqual([]);
     expect(response.body.search).toBe('NoSuchTrain');
   });
+
+ 43-trains-pagination
 });
