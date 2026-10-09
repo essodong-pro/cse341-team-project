@@ -222,6 +222,96 @@ describe('GET /api/bookings', () => {
     expect(response.body.pagination.limit).toBe(50);
   });
 
+  test('returns an empty result when the requested page is beyond the available pages', async () => {
+    await createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ page: 3, limit: 1 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.pagination).toEqual({
+      page: 3,
+      limit: 1,
+      totalItems: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: true
+    });
+  });
+
+  test('accepts the minimum limit of 1', async () => {
+    await createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ limit: 1 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.pagination.limit).toBe(1);
+    expect(response.body.pagination.totalItems).toBe(1);
+    expect(response.body.pagination.totalPages).toBe(1);
+  });
+
+  test('combines pagination with ascending booking-date sorting', async () => {
+    const older = await createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    await createBooking({
+      scheduleId: '2',
+      tripId: 'alpine-panorama',
+      ticketClass: 'premium',
+      selectedDay: 'tuesday',
+      passengers: samplePassengers,
+      pricePerTicket: 18000,
+      totalPrice: 18000
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({
+        page: 1,
+        limit: 1,
+        sort: 'createdAt',
+        order: 'asc'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0].id).toBe(older.id);
+    expect(response.body.pagination.page).toBe(1);
+    expect(response.body.pagination.limit).toBe(1);
+    expect(response.body.pagination.totalItems).toBe(2);
+    expect(response.body.pagination.totalPages).toBe(2);
+    expect(response.body.pagination.hasNextPage).toBe(true);
+    expect(response.body.pagination.hasPreviousPage).toBe(false);
+  });
+
   test('sorts bookings by booking date', async () => {
     const older = await createBooking({
       scheduleId: '1',
