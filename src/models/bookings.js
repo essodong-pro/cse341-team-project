@@ -21,17 +21,36 @@ export async function getAllBookings({
     limit = 10,
     sort = "createdAt",
     order = "desc",
+    ticketClass,
+    bookingDate,
 } = {}) {
     const skip = (page - 1) * limit;
     const sortDirection = order === "asc" ? 1 : -1;
 
+    const filter = {};
+
+    if (ticketClass) {
+        filter.ticketClass = ticketClass;
+    }
+
+    if (bookingDate) {
+        const start = new Date(`${ bookingDate }T00:00:00.000Z`);
+        const end = new Date(`${ bookingDate }T00:00:00.000Z`);
+        end.setUTCDate(end.getUTCDate() + 1);
+
+        filter.createdAt = {
+            $gte: start,
+            $lt: end,
+        };
+    }
+
     const [bookings, totalItems] = await Promise.all([
-        Booking.find({})
+        Booking.find(filter)
             .sort({ [sort]: sortDirection })
             .skip(skip)
             .limit(limit)
             .lean(),
-        Booking.countDocuments({}),
+        Booking.countDocuments(filter),
     ]);
 
     const totalPages = Math.ceil(totalItems / limit);

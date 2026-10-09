@@ -17,6 +17,8 @@ export async function getAllBookings(req, res) {
         const limitParam = req.query.limit;
         const sortParam = req.query.sort;
         const orderParam = req.query.order;
+        const ticketClass = req.query.ticketClass;
+        const bookingDate = req.query.bookingDate;
 
         const page = pageParam === undefined ? 1 : Number(pageParam);
         const limit = limitParam === undefined ? 10 : Number(limitParam);
@@ -55,6 +57,31 @@ export async function getAllBookings(req, res) {
             });
         }
 
+        if (ticketClass !== undefined &&
+            (typeof ticketClass !== "string" || ticketClass.trim() === "")) {
+            errors.push({
+                field: "ticketClass",
+                message: "ticketClass must be a non-empty string."
+            });
+        }
+
+        if (bookingDate !== undefined) {
+            const isValidDate =
+                typeof bookingDate === "string" &&
+                /^\d{4}-\d{2}-\d{2}$/.test(bookingDate) &&
+                !Number.isNaN(Date.parse(`${ bookingDate }T00:00:00.000Z`)) &&
+                new Date(`${ bookingDate }T00:00:00.000Z`)
+                    .toISOString()
+                    .startsWith(bookingDate);
+
+            if (!isValidDate) {
+                errors.push({
+                    field: "bookingDate",
+                    message: "bookingDate must be a valid date in YYYY-MM-DD format."
+                });
+            }
+        }
+
         if (errors.length > 0) {
             return res.status(400).json({
                 errors
@@ -65,14 +92,22 @@ export async function getAllBookings(req, res) {
             page,
             limit,
             sort,
-            order
+            order,
+            ticketClass: ticketClass?.trim(),
+            bookingDate
         });
 
         return res.status(200).json({
             data: result.data,
             query: {
                 sort,
-                order
+                order,
+                ...(ticketClass !== undefined && {
+                    ticketClass: ticketClass.trim()
+                }),
+                ...(bookingDate !== undefined && {
+                    bookingDate
+                })
             },
             pagination: result.pagination
         });
@@ -219,7 +254,7 @@ export async function processBookingRequest(req, res) {
         totalPrice
     });
 
-    return res.redirect(`/bookings/${booking.id}`);
+    return res.redirect(`/bookings/${booking.id.trim()}`);
 }
 
 export async function renderBookingConfirmation(req, res) {
