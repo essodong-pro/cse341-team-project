@@ -16,11 +16,29 @@ const trainsApi = async (req, res, next) => {
         }
 
         const collection = getDb().collection('trains');
+ 43-trains-search
+        const search = req.query.search?.trim() || '';
+        const filter = search
+    ? {
+        $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { operator: { $regex: search, $options: 'i' } }
+        ]
+    }
+    : {};
+
+const totalItems = await collection.countDocuments(filter);
+        const totalPages = Math.ceil(totalItems / limit);
+
+        const trains = await collection
+            .find(filter)
+
         const totalItems = await collection.countDocuments();
         const totalPages = Math.ceil(totalItems / limit);
 
         const trains = await collection
             .find({})
+ 43-trains-pagination
             .sort({ _id: 1 })
             .skip((page - 1) * limit)
             .limit(limit)
@@ -28,6 +46,9 @@ const trainsApi = async (req, res, next) => {
 
         return res.json({
             data: trains,
+ 43-trains-search
+            search,
+ 43-trains-pagination
             pagination: {
                 page,
                 limit,

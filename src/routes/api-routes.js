@@ -38,7 +38,11 @@ const router = express.Router();
  * @swagger
  * /api/trains:
  *   get:
+ 43-trains-search
+ *     summary: Returns paginated trains with keyword search
+
  *     summary: Returns paginated trains
+ 43-trains-pagination
  *     parameters:
  *       - in: query
  *         name: page
@@ -55,6 +59,14 @@ const router = express.Router();
  *           maximum: 50
  *           default: 10
  *         description: Number of trains per page.
+ 43-trains-search
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Keyword to search train names or operators.
+
+43-trains-pagination
  *     responses:
  *       200:
  *         description: A paginated list of trains
