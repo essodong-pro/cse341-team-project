@@ -11,37 +11,57 @@ import { getAllTicketClasses } from "../models/ticket-classes.js";
 // API CONTROLLERS
 // ==========================
 
+function isValidDateString(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return false;
+    }
+
+    const date = new Date(`${value}T00:00:00.000Z`);
+
+    if (Number.isNaN(date.getTime())) {
+        return false;
+    }
+
+    return date.toISOString().slice(0, 10) === value;
+}
+
 export async function getAllBookings(req, res) {
     try {
-        const pageParam = req.query.page;
-        const limitParam = req.query.limit;
-        const sortParam = req.query.sort;
-        const orderParam = req.query.order;
+        const {
+            page: pageParam,
+            limit: limitParam,
+            sort: sortParam,
+            order: orderParam,
+            ticketClass: ticketClassParam,
+            startDate: startDateParam,
+            endDate: endDateParam
+        } = req.query;
 
         const page = pageParam === undefined ? 1 : Number(pageParam);
         const limit = limitParam === undefined ? 10 : Number(limitParam);
         const sort = sortParam === undefined ? "createdAt" : sortParam;
         const order = orderParam === undefined ? "desc" : orderParam;
+        const ticketClass = ticketClassParam;
+        const startDate = startDateParam;
+        const endDate = endDateParam;
 
         const errors = [];
 
-        if (!Number.isInteger(page) || page < 1) {
+        if (!Number.isSafeInteger(page) || page < 1) {
             errors.push({
                 field: "page",
                 message: "page must be a positive integer."
             });
         }
 
-        if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+        if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
             errors.push({
                 field: "limit",
                 message: "limit must be a number between 1 and 50."
             });
         }
 
-        const allowedSorts = ["createdAt"];
-
-        if (!allowedSorts.includes(sort)) {
+        if (sort !== "createdAt") {
             errors.push({
                 field: "sort",
                 message: "sort must be createdAt."
@@ -55,24 +75,89 @@ export async function getAllBookings(req, res) {
             });
         }
 
-        if (errors.length > 0) {
-            return res.status(400).json({
-                errors
+        if (ticketClass !== undefined) {
+            if (
+                typeof ticketClass !== "string" ||
+                ticketClass.trim() === ""
+            ) {
+                errors.push({
+                    field: "ticketClass",
+                    message: "ticketClass must be a valid ticket class."
+                });
+            } else {
+                const ticketClasses = await getAllTicketClasses();
+
+                const validTicketClass = ticketClasses.some(
+                    (item) => item.class === ticketClass
+                );
+
+                if (!validTicketClass) {
+                    errors.push({
+                        field: "ticketClass",
+                        message: "ticketClass must be a valid ticket class."
+                    });
+                }
+            }
+        }
+
+        if (
+            startDate !== undefined &&
+            !isValidDateString(startDate)
+        ) {
+            errors.push({
+                field: "startDate",
+                message:
+                    "startDate must be a valid date in YYYY-MM-DD format."
             });
+        }
+
+        if (
+            endDate !== undefined &&
+            !isValidDateString(endDate)
+        ) {
+            errors.push({
+                field: "endDate",
+                message:
+                    "endDate must be a valid date in YYYY-MM-DD format."
+            });
+        }
+
+        if (
+            startDate !== undefined &&
+            endDate !== undefined &&
+            isValidDateString(startDate) &&
+            isValidDateString(endDate) &&
+            startDate > endDate
+        ) {
+            errors.push({
+                field: "dateRange",
+                message:
+                    "startDate must be before or equal to endDate."
+            });
+        }
+
+        if (errors.length > 0) {
+            return res.status(400).json({ errors });
         }
 
         const result = await fetchAllBookings({
             page,
             limit,
             sort,
-            order
+            order,
+            ticketClass,
+            startDate,
+            endDate
         });
 
         return res.status(200).json({
             data: result.data,
             query: {
                 sort,
-                order
+                order,
+                ...(ticketClass !== undefined && { ticketClass }),
+                ...(startDate !== undefined && { startDate }),
+                ...(endDate !== undefined && { endDate })
             },
             pagination: result.pagination
         });
@@ -122,6 +207,7 @@ export async function renderBookingForm(req, res) {
     const { scheduleId } = req.params;
 
     const db = getDb();
+
     const schedule = await db.collection("schedules").findOne({
         id: Number(scheduleId)
     });

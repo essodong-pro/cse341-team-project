@@ -173,7 +173,7 @@ router.get(
  * @swagger
  * /api/bookings:
  *   get:
- *     summary: Returns a paginated list of bookings
+ *     summary: Returns a paginated and filtered list of bookings
  *     parameters:
  *       - in: query
  *         name: page
@@ -193,26 +193,75 @@ router.get(
  *           default: 10
  *         description: How many bookings to return per page.
  *       - in: query
+ *         name: ticketClass
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Filter bookings by ticket class.
+ *       - in: query
+ *         name: startDate
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Return bookings created on or after this date.
+ *       - in: query
+ *         name: endDate
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Return bookings created on or before this date.
+ *       - in: query
  *         name: sort
  *         required: false
  *         schema:
  *           type: string
- *           enum: [createdAt]
+ *           enum:
+ *             - createdAt
  *           default: createdAt
- *         description: Field used to sort bookings. Defaults to booking date.
+ *         description: Field used to sort bookings.
  *       - in: query
  *         name: order
  *         required: false
  *         schema:
  *           type: string
- *           enum: [asc, desc]
+ *           enum:
+ *             - asc
+ *             - desc
  *           default: desc
  *         description: Sort direction.
  *     responses:
  *       200:
- *         description: A page of bookings with pagination metadata.
+ *         description: A page of bookings with filtering and pagination metadata.
+ *         content:
+ *           application/json:
+ *             example:
+ *               data:
+ *                 - id: ABC123
+ *                   ticketClass: standard
+ *                   totalPrice: 125
+ *               query:
+ *                 sort: createdAt
+ *                 order: desc
+ *                 ticketClass: standard
+ *                 startDate: 2026-09-01
+ *                 endDate: 2026-09-29
+ *               pagination:
+ *                 page: 1
+ *                 limit: 10
+ *                 totalItems: 12
+ *                 totalPages: 2
+ *                 hasNextPage: true
+ *                 hasPreviousPage: false
  *       400:
- *         description: Invalid pagination or sorting parameters.
+ *         description: Invalid pagination, sorting, ticket class, or date filter.
+ *         content:
+ *           application/json:
+ *             example:
+ *               errors:
+ *                 - field: startDate
+ *                   message: startDate must be a valid date in YYYY-MM-DD format.
  *       500:
  *         description: Internal server error.
  */
