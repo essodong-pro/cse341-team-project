@@ -88,7 +88,8 @@ const hookTrainsCatalog = async () => {
             loadingEl.hidden = true;
         }
     } catch (error) {
-        console.error("Error loading trains:", error);
+
+        console.error('Error loading trains:', error);
 
         if (loadingEl) {
             loadingEl.hidden = true;
@@ -96,8 +97,7 @@ const hookTrainsCatalog = async () => {
 
         if (errorEl) {
             errorEl.hidden = false;
-            errorEl.textContent =
-                "Unable to load trains right now. Please try again in a moment.";
+            errorEl.textContent = 'Unable to load trains right now. Please try again in a moment.';
         }
     }
 };
@@ -151,7 +151,7 @@ const hookBookingsCatalog = async () => {
             }
 
             const bookingsPayload = await bookingsResponse.json();
-            const trips = await tripsResponse.json();
+            const { data: trips } = await tripsResponse.json();
 
             const bookings = bookingsPayload.data || [];
             const pagination = bookingsPayload.pagination || {};
@@ -325,7 +325,7 @@ const hookUserDashboard = async () => {
             );
         }
 
-        const trips = await tripsResponse.json();
+        const { data: trips } = await tripsResponse.json();
 
         const tripNamesById = new Map(
             trips.map((trip) => [String(trip.id), trip.name])
