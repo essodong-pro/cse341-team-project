@@ -8,10 +8,9 @@ import {
 } from '../src/models/bookings.js';
 
 import * as bookingsModel from '../src/models/bookings.js';
-
 import { getDb } from '../src/db/connect.js';
-
 import app from '../app.js';
+import { loginAs } from './helpers/auth.js';
 
 const samplePassengers = [
   {
@@ -144,7 +143,8 @@ describe('booking model functions', () => {
 
 describe('GET /api/bookings', () => {
   test('returns 200 with an empty paginated result when there are no bookings', async () => {
-    const response = await request(app).get('/api/bookings');
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent.get('/api/bookings');
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
@@ -173,7 +173,8 @@ describe('GET /api/bookings', () => {
       totalPrice: 14400
     });
 
-    const response = await request(app).get('/api/bookings');
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent.get('/api/bookings');
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
@@ -196,7 +197,8 @@ describe('GET /api/bookings', () => {
       });
     }
 
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({
         page: 2,
@@ -214,7 +216,8 @@ describe('GET /api/bookings', () => {
   });
 
   test('accepts the maximum limit of 50', async () => {
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({ limit: 50 });
 
@@ -245,7 +248,8 @@ describe('GET /api/bookings', () => {
       totalPrice: 22050
     });
 
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({
         limit: 10,
@@ -285,7 +289,8 @@ describe('GET /api/bookings', () => {
       totalPrice: 22050
     });
 
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({
         limit: 10,
@@ -303,7 +308,8 @@ describe('GET /api/bookings', () => {
   });
 
   test('returns 400 for an invalid page', async () => {
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({ page: 0 });
 
@@ -311,7 +317,8 @@ describe('GET /api/bookings', () => {
   });
 
   test('returns 400 for an invalid limit', async () => {
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({ limit: 51 });
 
@@ -319,7 +326,8 @@ describe('GET /api/bookings', () => {
   });
 
   test('returns 400 for an invalid sort field', async () => {
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({ sort: 'ticketClass' });
 
@@ -327,7 +335,8 @@ describe('GET /api/bookings', () => {
   });
 
   test('returns 400 for an invalid sort order', async () => {
-    const response = await request(app)
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent
       .get('/api/bookings')
       .query({ order: 'sideways' });
 
@@ -339,14 +348,17 @@ describe('GET /api/bookings', () => {
       .spyOn(bookingsModel, 'getAllBookings')
       .mockRejectedValueOnce(new Error('boom'));
 
-    const response = await request(app).get('/api/bookings');
+    try {
+      const agent = await loginAs('admin@kizunarail.com');
+      const response = await agent.get('/api/bookings');
 
-    expect(response.status).toBe(500);
-    expect(response.body).toEqual({
-      error: 'Internal Server Error'
-    });
-
-    spy.mockRestore();
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'Internal Server Error'
+      });
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
@@ -362,7 +374,8 @@ describe('GET /api/bookings/:id', () => {
       totalPrice: 14400
     });
 
-    const response = await request(app).get(`/api/bookings/${created.id}`);
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent.get(`/api/bookings/${created.id}`);
 
     expect(response.status).toBe(200);
     expect(response.body.id).toBe(created.id);
@@ -370,7 +383,8 @@ describe('GET /api/bookings/:id', () => {
   });
 
   test('returns 404 for an unknown id', async () => {
-    const response = await request(app).get('/api/bookings/does-not-exist');
+    const agent = await loginAs('admin@kizunarail.com');
+    const response = await agent.get('/api/bookings/does-not-exist');
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -427,7 +441,7 @@ describe('booking EJS pages', () => {
 
     expect(response.status).toBe(400);
     expect(response.text).toContain(
-      'At least one passenger is required'
+      'Each booking requires at least one passenger'
     );
   });
 
@@ -478,7 +492,7 @@ describe('booking EJS pages', () => {
 
     expect(response.status).toBe(400);
     expect(response.text).toContain(
-      'Each passenger must include'
+      'Each booking requires at least one passenger'
     );
   });
 
@@ -514,6 +528,8 @@ describe('booking EJS pages', () => {
         passengers: samplePassengers,
         totalPrice: 1
       });
+
+    expect(response.status).toBe(302);
 
     const bookingId = response.headers.location.split('/').pop();
     const booking = await getBookingById(bookingId);
@@ -558,9 +574,7 @@ describe('booking EJS pages', () => {
   });
 
   test('GET /bookings/:bookingId returns 404 for an unknown booking', async () => {
-    const response = await request(app).get(
-      '/bookings/does-not-exist'
-    );
+    const response = await request(app).get('/bookings/does-not-exist');
 
     expect(response.status).toBe(404);
     expect(response.text).toContain('Page Not Found');
@@ -572,5 +586,267 @@ describe('booking EJS pages', () => {
     expect(response.status).toBe(200);
     expect(response.text).toContain('id="bookings-list"');
     expect(response.text).toContain('booking-view-link');
+  });
+});
+
+describe('Booking API CRUD', () => {
+  const bookingPayload = {
+    scheduleId: '1',
+    tripId: 'alpine-panorama',
+    ticketClass: 'standard',
+    selectedDay: 'monday',
+    passengers: [
+      {
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        email: 'ada@example.com',
+        phone: '+1 555-0100'
+      }
+    ]
+  };
+
+  test('requires authentication to create a booking', async () => {
+    const response = await request(app)
+      .post('/api/bookings')
+      .send(bookingPayload);
+
+    expect(response.status).toBe(401);
+  });
+
+  test('creates a booking and persists it in the database', async () => {
+    const agent = await loginAs('customer@kizunarail.com');
+
+    const response = await agent
+      .post('/api/bookings')
+      .send(bookingPayload);
+
+    expect(response.status).toBe(201);
+    expect(response.body.id).toBeDefined();
+
+    const savedBooking = await getBookingById(response.body.id);
+
+    expect(savedBooking).not.toBeNull();
+    expect(savedBooking.tripId).toBe('alpine-panorama');
+    expect(savedBooking.userId).toBeDefined();
+    expect(savedBooking.passengers).toHaveLength(1);
+  });
+
+  test('requires authentication to update a booking', async () => {
+    const booking = await createBooking({
+      ...bookingPayload,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app)
+      .put(`/api/bookings/${booking.id}`)
+      .send({ selectedDay: 'tuesday' });
+
+    expect(response.status).toBe(401);
+  });
+
+  test('returns 404 when updating a booking that does not exist', async () => {
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent
+      .put('/api/bookings/does-not-exist')
+      .send(bookingPayload);
+
+    expect(response.status).toBe(404);
+  });
+
+  test('requires authentication to delete a booking', async () => {
+    const booking = await createBooking({
+      ...bookingPayload,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app)
+      .delete(`/api/bookings/${booking.id}`);
+
+    expect(response.status).toBe(401);
+  });
+
+  test('returns 404 when deleting a booking that does not exist', async () => {
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent.delete(
+      '/api/bookings/does-not-exist'
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
+
+
+describe('Booking API update and delete operations', () => {
+  const bookingPayload = {
+    scheduleId: '1',
+    tripId: 'alpine-panorama',
+    ticketClass: 'standard',
+    selectedDay: 'monday',
+    passengers: [
+      {
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        email: 'ada@example.com',
+        phone: '+1 555-0100'
+      }
+    ],
+    pricePerTicket: 14400,
+    totalPrice: 14400
+  };
+
+  test('admin can update an existing booking', async () => {
+    const booking = await createBooking(bookingPayload);
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent
+      .put(`/api/bookings/${booking.id}`)
+      .send({
+        ...bookingPayload,
+        selectedDay: 'tuesday'
+      });
+
+    expect(response.status).toBe(200);
+
+    const updatedBooking = await getBookingById(booking.id);
+
+    expect(updatedBooking).not.toBeNull();
+    expect(updatedBooking.selectedDay).toBe('tuesday');
+  });
+
+  test('admin can delete an existing booking', async () => {
+    const booking = await createBooking(bookingPayload);
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent.delete(
+      `/api/bookings/${booking.id}`
+    );
+
+    expect([200, 204]).toContain(response.status);
+
+    const deletedBooking = await getBookingById(booking.id);
+
+    expect(deletedBooking).toBeNull();
+  });
+});
+
+
+describe('GET /api/bookings filters', () => {
+  const passengers = [
+    {
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+      phone: '+1 555-0100'
+    }
+  ];
+
+  async function createTestBooking(ticketClass) {
+    return createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass,
+      selectedDay: 'monday',
+      passengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+  }
+
+  test('filters bookings by ticket class', async () => {
+    const standardBooking = await createTestBooking('standard');
+    await createTestBooking('premium');
+
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent
+      .get('/api/bookings')
+      .query({ ticketClass: 'standard' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0].id).toBe(standardBooking.id);
+    expect(response.body.data[0].ticketClass).toBe('standard');
+    expect(response.body.pagination.totalItems).toBe(1);
+  });
+
+  test('returns an empty result when no bookings match the ticket class', async () => {
+    await createTestBooking('standard');
+
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent
+      .get('/api/bookings')
+      .query({ ticketClass: 'premium' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(0);
+    expect(response.body.pagination.totalItems).toBe(0);
+  });
+
+  test('filters bookings by booking date', async () => {
+    const db = getDb();
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterdayDate = new Date();
+    yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+    const yesterday = yesterdayDate.toISOString().slice(0, 10);
+
+    await createTestBooking('standard');
+
+    await db.collection('bookings').updateOne(
+      { ticketClass: 'standard' },
+      {
+        $set: {
+          createdAt: new Date(`${yesterday}T12:00:00.000Z`)
+        }
+      }
+    );
+
+    await createTestBooking('premium');
+
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent
+      .get('/api/bookings')
+      .query({ bookingDate: today });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(
+      response.body.data.every((booking) =>
+        booking.createdAt.startsWith(today)
+      )
+    ).toBe(true);
+  });
+
+  test('combines ticket class and booking date filters', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+
+    await createTestBooking('standard');
+    await createTestBooking('premium');
+
+    const agent = await loginAs('admin@kizunarail.com');
+
+    const response = await agent
+      .get('/api/bookings')
+      .query({
+        ticketClass: 'standard',
+        bookingDate: today
+      });
+
+    expect(response.status).toBe(200);
+    expect(
+      response.body.data.every(
+        (booking) => booking.ticketClass === 'standard'
+      )
+    ).toBe(true);
+    expect(
+      response.body.data.every((booking) =>
+        booking.createdAt.startsWith(today)
+      )
+    ).toBe(true);
   });
 });

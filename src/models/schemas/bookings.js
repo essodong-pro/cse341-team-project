@@ -7,19 +7,16 @@ const passengerSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
-
         lastName: {
             type: String,
             required: true,
             trim: true,
         },
-
         email: {
             type: String,
             required: true,
             trim: true,
         },
-
         phone: {
             type: String,
             required: true,
@@ -38,6 +35,12 @@ const bookingSchema = new mongoose.Schema(
             required: true,
             unique: true,
             trim: true,
+        },
+
+        userId: {
+            type: String,
+            default: null,
+            index: true,
         },
 
         scheduleId: {
