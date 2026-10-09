@@ -28,17 +28,21 @@ export async function getPaginatedTrips({
     }
     
 
-    if (q) {
+    if (typeof q === "string" && q.trim()) {
+        const escapedQuery = q.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+        );
         filter.$or = [
             {
                 name: {
-                    $regex: q,
+                    $regex: escapedQuery,
                     $options: "i"
                 }
             },
             {
                 description: {
-                    $regex: q,
+                    $regex: escapedQuery,
                     $options: "i"
                 }
             }
