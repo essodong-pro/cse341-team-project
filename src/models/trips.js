@@ -27,7 +27,6 @@ export async function getPaginatedTrips({
         filter.bestSeason = season.toLowerCase();
     }
     
-
     if (typeof q === "string" && q.trim()) {
         const escapedQuery = q.replace(
             /[.*+?^${}()|[\]\\]/g,
