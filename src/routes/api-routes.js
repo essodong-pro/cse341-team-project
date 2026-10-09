@@ -29,6 +29,7 @@ import {
     updateUserById,
     deleteUserById
 } from "../controllers/users.js";
+
 import { requireApiLogin } from "../middleware/auth.js";
 import { requireApiSelfOrAdmin } from "../middleware/ownership.js";
 
@@ -174,6 +175,8 @@ router.get(
  * /api/bookings:
  *   get:
  *     summary: Returns a paginated list of bookings
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -213,16 +216,20 @@ router.get(
  *         description: A page of bookings with pagination metadata.
  *       400:
  *         description: Invalid pagination or sorting parameters.
+ *       401:
+ *         description: Authentication required.
  *       500:
  *         description: Internal server error.
  */
-router.get("/bookings", getAllBookings);
+router.get("/bookings", requireApiLogin, getAllBookings);
 
 /**
  * @swagger
  * /api/bookings/{id}:
  *   get:
  *     summary: Returns a booking by ID
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -232,12 +239,14 @@ router.get("/bookings", getAllBookings);
  *     responses:
  *       200:
  *         description: A single booking object
+ *       401:
+ *         description: Authentication required.
  *       404:
  *         description: Booking not found
  *       500:
  *         description: Internal server error
  */
-router.get("/bookings/:id", getBookingById);
+router.get("/bookings/:id", requireApiLogin, getBookingById);
 
 /**
  * @swagger
@@ -374,7 +383,12 @@ router.get("/users", requireApiLogin, getUsers);
  *       500:
  *         description: Internal server error
  */
-router.put("/users/:id", requireApiLogin, requireApiSelfOrAdmin, updateUserById);
+router.put(
+    "/users/:id",
+    requireApiLogin,
+    requireApiSelfOrAdmin,
+    updateUserById
+);
 
 /**
  * @swagger
@@ -406,6 +420,11 @@ router.put("/users/:id", requireApiLogin, requireApiSelfOrAdmin, updateUserById)
  *       500:
  *         description: Internal server error
  */
-router.delete("/users/:id", requireApiLogin, requireApiSelfOrAdmin, deleteUserById);
+router.delete(
+    "/users/:id",
+    requireApiLogin,
+    requireApiSelfOrAdmin,
+    deleteUserById
+);
 
 export default router;
