@@ -151,7 +151,7 @@ const hookBookingsCatalog = async () => {
             }
 
             const bookingsPayload = await bookingsResponse.json();
-            const trips = await tripsResponse.json();
+            const { data: trips } = await tripsResponse.json();
 
             const bookings = bookingsPayload.data || [];
             const pagination = bookingsPayload.pagination || {};
