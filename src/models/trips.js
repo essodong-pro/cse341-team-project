@@ -27,18 +27,21 @@ export async function getPaginatedTrips({
         filter.bestSeason = season.toLowerCase();
     }
     
-
-    if (q) {
+    if (typeof q === "string" && q.trim()) {
+        const escapedQuery = q.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+        );
         filter.$or = [
             {
                 name: {
-                    $regex: q,
+                    $regex: escapedQuery,
                     $options: "i"
                 }
             },
             {
                 description: {
-                    $regex: q,
+                    $regex: escapedQuery,
                     $options: "i"
                 }
             }
@@ -47,6 +50,7 @@ export async function getPaginatedTrips({
 
     const [trips, totalItems] = await Promise.all([
         Trip.find(filter)
+            .sort({ id: 1 })
             .skip(skip)
             .limit(limit)
             .lean(),

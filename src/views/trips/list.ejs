@@ -35,6 +35,9 @@
     </div>
 
     <script>
+        const allRegions = <%- JSON.stringify(regions) %>;
+        const allSeasons = <%- JSON.stringify(seasons) %>;
+
         document.addEventListener("DOMContentLoaded", async () => {
             const container = document.getElementById("trips-container");
             const regionFilter = document.getElementById("region-filter");
@@ -45,7 +48,7 @@
             const pageInfo = document.getElementById("page-info");
 
             let trips = [];
-            let currentPage =Number( new URLSearchParams(window.location.search).get("page")) || 1;
+            let currentPage = Math.max(1,Number(new URLSearchParams(window.location.search).get("page")) || 1);
             let totalPages = 1;
             const limit = 10; // Number of trips per page
 
@@ -86,19 +89,18 @@
                 trips = result.data;
                 totalPages = result.pagination.totalPages;
 
-                pageInfo.textContent =`Page ${currentPage} of ${totalPages}`;
+                pageInfo.textContent = 
+                    totalPages === 0
+                        ? "No results found"
+                        : `Page ${currentPage} of ${totalPages}`;
                 previousPageBtn.disabled = currentPage === 1;
-                nextPageBtn.disabled = currentPage === totalPages;
+                nextPageBtn.disabled = totalPages === 0 || currentPage >= totalPages;
                 if (!Array.isArray(trips)) {
                     throw new Error("Invalid trip data received");
                 }
 
                 // Create the region options from the API data.
-                const regions = [...new Set(
-                    trips
-                        .map(trip => trip.region)
-                        .filter(Boolean)
-                )].sort();
+                const regions = allRegions;
 
                 regions.forEach(region => {
                     const option = document.createElement("option");
@@ -110,11 +112,7 @@
                 });
 
                 // Create the season options from the API data.
-                const seasons = [...new Set(
-                    trips
-                        .map(trip => trip.bestSeason)
-                        .filter(Boolean)
-                )].sort();
+                const seasons = allSeasons;
 
                 seasons.forEach(season => {
                     const option = document.createElement("option");
@@ -260,6 +258,7 @@
                         params.set("q", search);
                     }
 
+                     params.set("page", "1");
                     const queryString = params.toString();
 
                     const newUrl = queryString
@@ -273,16 +272,23 @@
                 nextPageBtn.addEventListener("click", () => {
                     if (currentPage < totalPages) {
                         currentPage++;
+                        const params = new URLSearchParams(window.location.search);
 
-                        window.location.href =`/trips?page=${currentPage}`;
+                        params.set("page", currentPage);
+
+                        window.location.href = `/trips?${params.toString()}`;
+                        
                     }
                 });
 
                 previousPageBtn.addEventListener("click", () => {
                     if (currentPage > 1) {
                         currentPage--;
+                    
+                    const params = new URLSearchParams(window.location.search);
+                    params.set("page", currentPage);    
 
-                    window.location.href =`/trips?page=${currentPage}`;
+                    window.location.href = `/trips?${params.toString()}`;
                     }
                 });
                 regionFilter.addEventListener("change", updateFilters);
