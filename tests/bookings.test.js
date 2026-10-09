@@ -222,6 +222,96 @@ describe('GET /api/bookings', () => {
     expect(response.body.pagination.limit).toBe(50);
   });
 
+  test('returns an empty result when the requested page is beyond the available pages', async () => {
+    await createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ page: 3, limit: 1 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.pagination).toEqual({
+      page: 3,
+      limit: 1,
+      totalItems: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: true
+    });
+  });
+
+  test('accepts the minimum limit of 1', async () => {
+    await createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ limit: 1 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.pagination.limit).toBe(1);
+    expect(response.body.pagination.totalItems).toBe(1);
+    expect(response.body.pagination.totalPages).toBe(1);
+  });
+
+  test('combines pagination with ascending booking-date sorting', async () => {
+    const older = await createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    await createBooking({
+      scheduleId: '2',
+      tripId: 'alpine-panorama',
+      ticketClass: 'premium',
+      selectedDay: 'tuesday',
+      passengers: samplePassengers,
+      pricePerTicket: 18000,
+      totalPrice: 18000
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({
+        page: 1,
+        limit: 1,
+        sort: 'createdAt',
+        order: 'asc'
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0].id).toBe(older.id);
+    expect(response.body.pagination.page).toBe(1);
+    expect(response.body.pagination.limit).toBe(1);
+    expect(response.body.pagination.totalItems).toBe(2);
+    expect(response.body.pagination.totalPages).toBe(2);
+    expect(response.body.pagination.hasNextPage).toBe(true);
+    expect(response.body.pagination.hasPreviousPage).toBe(false);
+  });
+
   test('sorts bookings by booking date', async () => {
     const older = await createBooking({
       scheduleId: '1',
@@ -333,6 +423,152 @@ describe('GET /api/bookings', () => {
 
     expect(response.status).toBe(400);
   });
+
+  test('filters bookings by ticket class', async () => {
+    const uniqueTripId = `filter - class- ${ Date.now() } `;
+
+    const standard = await createBooking({
+      scheduleId: '1',
+      tripId: uniqueTripId,
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 100,
+      totalPrice: 100
+    });
+
+    await createBooking({
+      scheduleId: '2',
+      tripId: uniqueTripId,
+      ticketClass: 'premium',
+      selectedDay: 'tuesday',
+      passengers: samplePassengers,
+      pricePerTicket: 200,
+      totalPrice: 200
+    });
+
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ ticketClass: 'standard' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.length).toBeGreaterThan(0);
+    expect(response.body.data.every(
+      (booking) => booking.ticketClass === 'standard'
+    )).toBe(true);
+    expect(response.body.data.some(
+      (booking) => booking.id === standard.id
+    )).toBe(true);
+    expect(response.body.query.ticketClass).toBe('standard');
+  });
+
+  test('returns no bookings when a ticket class has no matches', async () => {
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ ticketClass: `unknown - ${ Date.now() } ` });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+    expect(response.body.pagination.totalItems).toBe(0);
+    expect(response.body.pagination.totalPages).toBe(0);
+    expect(response.body.pagination.hasNextPage).toBe(false);
+  });
+
+  test('returns 400 for an invalid booking date', async () => {
+    const response = await request(app)
+      .get('/api/bookings')
+      .query({ bookingDate: 'not-a-date' });
+
+    expect(response.status).toBe(400);
+  });
+
+  test('supports pagination across multiple pages of filtered bookings', async () => {
+    const uniqueTripId = `filter - pages - ${ Date.now() } `;
+
+    for (let i = 0; i < 3; i += 1) {
+      await createBooking({
+        scheduleId: String(i + 1),
+        tripId: uniqueTripId,
+        ticketClass: 'standard',
+        selectedDay: 'monday',
+        passengers: samplePassengers,
+        pricePerTicket: 100,
+        totalPrice: 100
+      });
+    }
+
+    const firstPage = await request(app)
+      .get('/api/bookings')
+      .query({
+        ticketClass: 'standard',
+        page: 1,
+        limit: 2
+      });
+
+    const secondPage = await request(app)
+      .get('/api/bookings')
+      .query({
+        ticketClass: 'standard',
+        page: 2,
+        limit: 2
+      });
+
+    expect(firstPage.status).toBe(200);
+    expect(secondPage.status).toBe(200);
+
+    expect(firstPage.body.data).toHaveLength(2);
+    expect(firstPage.body.pagination.totalItems).toBeGreaterThanOrEqual(3);
+    expect(firstPage.body.pagination.hasNextPage).toBe(true);
+
+    expect(secondPage.body.pagination.page).toBe(2);
+    expect(secondPage.body.pagination.hasPreviousPage).toBe(true);
+    expect(secondPage.body.pagination.hasNextPage).toBe(false);
+
+    const firstIds = firstPage.body.data.map((booking) => booking.id);
+    const secondIds = secondPage.body.data.map((booking) => booking.id);
+
+    expect(firstIds.some((id) => secondIds.includes(id))).toBe(false);
+  });
+
+test('filters bookings by booking date', async () => {
+    const bookingDate = '2024-04-15';
+
+    const booking = await createBooking({
+        scheduleId: `schedule - date - ${ Date.now() } `,
+        tripId: `filter - date - ${ Date.now() } `,
+        ticketClass: 'standard',
+        selectedDay: bookingDate,
+        passengers: samplePassengers,
+        pricePerTicket: 25,
+        totalPrice: 25,
+    });
+
+    const db = getDb();
+
+    await db.collection('bookings').updateOne(
+        { id: booking.id },
+        {
+            $set: {
+                createdAt: new Date('2024-04-15T12:00:00.000Z'),
+            },
+        }
+    );
+
+    const response = await request(app)
+        .get('/api/bookings')
+        .query({ bookingDate });
+
+    expect(response.status).toBe(200);
+    expect(response.body.query.bookingDate).toBe(bookingDate);
+    expect(response.body.data.map((item) => item.id)).toContain(booking.id);
+
+    expect(
+        response.body.data.every((item) => {
+            const date = new Date(item.createdAt);
+            return date.toISOString().startsWith(bookingDate);
+        })
+    ).toBe(true);
+});
 
   test('returns 500 with a JSON error when the model throws', async () => {
     const spy = vi
