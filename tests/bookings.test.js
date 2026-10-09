@@ -350,6 +350,7 @@ describe('GET /api/bookings', () => {
   });
 });
 
+
 describe('GET /api/bookings/:id', () => {
   test('returns 200 with the matching booking', async () => {
     const created = await createBooking({
@@ -367,6 +368,51 @@ describe('GET /api/bookings/:id', () => {
     expect(response.status).toBe(200);
     expect(response.body.id).toBe(created.id);
     expect(response.body.tripId).toBe('alpine-panorama');
+  });
+
+  test('returns the complete booking details for an existing booking', async () => {
+    const created = await createBooking({
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+
+    const response = await request(app).get(`/api/bookings/${created.id}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: created.id,
+      scheduleId: '1',
+      tripId: 'alpine-panorama',
+      ticketClass: 'standard',
+      selectedDay: 'monday',
+      passengers: samplePassengers,
+      pricePerTicket: 14400,
+      totalPrice: 14400
+    });
+  });
+
+  test('returns 500 with a JSON error when the model throws', async () => {
+    const spy = vi
+      .spyOn(bookingsModel, 'getBookingById')
+      .mockRejectedValueOnce(new Error('boom'));
+
+    try {
+      const response = await request(app).get(
+        '/api/bookings/test-booking-id'
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'Internal Server Error'
+      });
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   test('returns 404 for an unknown id', async () => {
