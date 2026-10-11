@@ -11,9 +11,10 @@ import { getRoleByName } from "../models/roles.js";
 const LAST_ADMIN_MESSAGE =
   "You can't remove the last administrator. Promote another user to admin first.";
 const EDITABLE_FIELDS = ["displayName", "username", "email"];
-const MAX_FIELD_LENGTHS = { displayName: 100, username: 50, email: 254 };
+// Exported so registration (controllers/auth.js) applies the same rules.
+export const MAX_FIELD_LENGTHS = { displayName: 100, username: 50, email: 254 };
 // Non-overlapping segments keep matching linear on hostile input.
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+export const EMAIL_PATTERN =/^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;

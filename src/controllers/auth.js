@@ -3,21 +3,56 @@ import {
   findUserByEmail,
   verifyPassword,
 } from "../models/users.js";
+import { EMAIL_PATTERN, MAX_FIELD_LENGTHS } from "./users.js";
+
+const REGISTER_FIELDS = ["displayName", "username", "email", "password"];
+
+/**
+ * Checks the registration form. Returns { values } with trimmed fields on
+ * success or { error } describing the first problem found.
+ */
+function validateRegistration(body = {}) {
+  const values = {};
+
+  for (const field of REGISTER_FIELDS) {
+    const value = body[field];
+
+    // Repeated form fields arrive as arrays, so check the type too.
+    if (typeof value !== "string" || value.trim() === "") {
+      return { error: `Please provide a valid ${field}.` };
+    }
+
+    // Spaces can be part of a password, so only the other fields are trimmed.
+    values[field] = field === "password" ? value : value.trim();
+
+    if (values[field].length > MAX_FIELD_LENGTHS[field]) {
+      return { error: `${field} is too long.` };
+    }
+  }
+
+  if (!EMAIL_PATTERN.test(values.email)) {
+    return { error: "Please provide a valid email." };
+  }
+
+  return { values };
+}
 
 export async function register(req, res) {
   try {
-    const {
-      displayName,
-      username,
-      email,
-      password,
-    } = req.body;
+    const { values, error } = validateRegistration(req.body);
+
+    if (error) {
+      return res.status(400).render("register", {
+        title: "Register",
+        error
+      });
+    }
 
     await createUser(
-      displayName,
-      username,
-      email,
-      password
+      values.displayName,
+      values.username,
+      values.email,
+      values.password
     );
 
     return res.redirect("/login");
