@@ -41,65 +41,127 @@ const hookTrainsCatalog = async () => {
     const templateEl = document.getElementById("train-card-template");
     const loadingEl = document.getElementById("trains-loading");
     const errorEl = document.getElementById("trains-error");
+    const searchInput = document.getElementById("train-search");
+    const searchStatusEl = document.getElementById("trains-search-status");
+    const paginationEl = document.getElementById("trains-pagination");
+    const pageStatusEl = document.getElementById("trains-page-status");
+    const previousButton = document.querySelector('[data-page-action="previous"]');
+    const nextButton = document.querySelector('[data-page-action="next"]');
 
     if (!listEl || !templateEl) {
         return;
     }
 
-    try {
-        const response = await fetch("/api/trains");
+    const pageSize = 3;
+    let searchTerm = "";
+    let currentPage = 1;
 
-        if (!response.ok) {
-            throw new Error(`Failed to load trains (${response.status})`);
-        }
-
-        const payload = await response.json();
-        const trains = payload.trains || [];
-        const fragment = document.createDocumentFragment();
-
-        trains.forEach((train) => {
-            const card = templateEl.content.cloneNode(true);
-            const imageEl = card.querySelector('[data-field="image"]');
-
-            imageEl.src = train.imageUrl;
-            imageEl.alt = train.imageAlt || `${train.name} train`;
-
-            card.querySelector('[data-field="name"]').textContent = train.name;
-            card.querySelector('[data-field="operator"]').textContent =
-                train.operator;
-            card.querySelector('[data-field="type"]').textContent = train.type;
-            card.querySelector('[data-field="speed"]').textContent =
-                `${train.maxSpeedKmh} km/h`;
-            card.querySelector('[data-field="seats"]').textContent =
-                `${train.capacity} seats`;
-            card.querySelector('[data-field="power"]').textContent =
-                train.powerSource;
-            card.querySelector('[data-field="description"]').textContent =
-                train.description;
-            card.querySelector('[data-field="best-for"]').textContent =
-                train.bestFor;
-
-            fragment.appendChild(card);
-        });
-
-        listEl.replaceChildren(fragment);
-
+    const loadTrains = async (page = 1) => {
         if (loadingEl) {
-            loadingEl.hidden = true;
-        }
-    } catch (error) {
-        console.error("Error loading trains:", error);
-
-        if (loadingEl) {
-            loadingEl.hidden = true;
+            loadingEl.hidden = false;
         }
 
         if (errorEl) {
-            errorEl.hidden = false;
-            errorEl.textContent =
-                "Unable to load trains right now. Please try again in a moment.";
+            errorEl.hidden = true;
         }
-    }
+
+        try {
+            const params = new URLSearchParams({
+                page: String(page),
+                limit: String(pageSize),
+                search: searchTerm
+            });
+
+            const response = await fetch(`/api/trains?${params.toString()}`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to load trains (${response.status})`);
+            }
+
+            const payload = await response.json();
+            const trains = payload.data || [];
+            const pagination = payload.pagination || {};
+            currentPage = pagination.page || page;
+
+            const fragment = document.createDocumentFragment();
+
+            trains.forEach((train) => {
+                const card = templateEl.content.cloneNode(true);
+                const imageEl = card.querySelector('[data-field="image"]');
+
+                imageEl.src = train.imageUrl;
+                imageEl.alt = train.imageAlt || `${train.name} train`;
+
+                card.querySelector('[data-field="name"]').textContent = train.name;
+                card.querySelector('[data-field="operator"]').textContent = train.operator;
+                card.querySelector('[data-field="type"]').textContent = train.type;
+                card.querySelector('[data-field="speed"]').textContent =
+                    `${train.maxSpeedKmh} km/h`;
+                card.querySelector('[data-field="seats"]').textContent =
+                    `${train.capacity} seats`;
+                card.querySelector('[data-field="power"]').textContent = train.powerSource;
+                card.querySelector('[data-field="description"]').textContent =
+                    train.description;
+                card.querySelector('[data-field="best-for"]').textContent = train.bestFor;
+
+                fragment.appendChild(card);
+            });
+
+            listEl.replaceChildren(fragment);
+
+            if (searchStatusEl) {
+                searchStatusEl.textContent = searchTerm
+                    ? `${pagination.totalItems || 0} train(s) found for "${searchTerm}".`
+                    : "";
+            }
+
+            if (paginationEl) {
+                paginationEl.hidden = (pagination.totalPages || 0) <= 1;
+            }
+
+            if (pageStatusEl) {
+                pageStatusEl.textContent =
+                    `Page ${currentPage} of ${pagination.totalPages || 1}`;
+            }
+
+            if (previousButton) {
+                previousButton.disabled = !pagination.hasPreviousPage;
+            }
+
+            if (nextButton) {
+                nextButton.disabled = !pagination.hasNextPage;
+            }
+        } catch (error) {
+            console.error("Error loading trains:", error);
+
+            if (errorEl) {
+                errorEl.hidden = false;
+                errorEl.textContent =
+                    "Unable to load trains right now. Please try again in a moment.";
+            }
+        } finally {
+            if (loadingEl) {
+                loadingEl.hidden = true;
+            }
+        }
+    };
+
+    searchInput?.addEventListener("input", () => {
+        searchTerm = searchInput.value.trim();
+        loadTrains(1);
+    });
+
+    previousButton?.addEventListener("click", () => {
+        if (currentPage > 1) {
+            loadTrains(currentPage - 1);
+        }
+    });
+
+    nextButton?.addEventListener("click", () => {
+        loadTrains(currentPage + 1);
+    });
+
+    await loadTrains(1);
 };
 
 const hookBookingsCatalog = async () => {

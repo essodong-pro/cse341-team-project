@@ -11,6 +11,17 @@
     <div class="trains-state" id="trains-loading">Loading trains...</div>
     <div class="trains-state trains-error" id="trains-error" hidden></div>
 
+
+    <div class="trains-search">
+    <label for="train-search">Search trains</label>
+    <input
+        type="search"
+        id="train-search"
+        placeholder="Search by train name or operator..."
+        autocomplete="off"
+    >
+    <p id="trains-search-status" aria-live="polite"></p>
+</div>
     <div class="trains-grid" id="trains-list"></div>
     <nav class="trains-pagination" id="trains-pagination" aria-label="Train list pages" hidden>
     <button type="button" class="train-button" data-page-action="previous">Previous</button>
