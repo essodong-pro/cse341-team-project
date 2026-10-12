@@ -1,4 +1,9 @@
-import express from "express";
+﻿import express from "express";
+import {
+    getAllStations,
+    getStationById
+} from "../controllers/stations.js";
+
 import {
     getAllTrains,
     getTrainById
@@ -33,6 +38,11 @@ import { requireApiLogin } from "../middleware/auth.js";
 import { requireApiSelfOrAdmin } from "../middleware/ownership.js";
 
 const router = express.Router();
+
+// Station read endpoints
+router.get("/stations", getAllStations);
+router.get("/stations/:id", getStationById);
+
 
 /**
  * @swagger
@@ -433,3 +443,4 @@ router.put("/users/:id", requireApiLogin, requireApiSelfOrAdmin, updateUserById)
 router.delete("/users/:id", requireApiLogin, requireApiSelfOrAdmin, deleteUserById);
 
 export default router;
+
