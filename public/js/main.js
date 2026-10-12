@@ -37,37 +37,42 @@ const hookSeasonSorter = () => {
 };
 
 const hookTrainsCatalog = async () => {
-43-trains-search
-    const listEl = document.getElementById('trains-list');
-    const templateEl = document.getElementById('train-card-template');
-    const loadingEl = document.getElementById('trains-loading');
-    const errorEl = document.getElementById('trains-error');
-    const paginationEl = document.getElementById('trains-pagination');
-    const pageStatusEl = document.getElementById('trains-page-status');
-    const previousButton = paginationEl?.querySelector('[data-page-action="previous"]');
-    const nextButton = paginationEl?.querySelector('[data-page-action="next"]');
-
     const listEl = document.getElementById("trains-list");
     const templateEl = document.getElementById("train-card-template");
     const loadingEl = document.getElementById("trains-loading");
     const errorEl = document.getElementById("trains-error");
- 43-trains-pagination
+    const searchInput = document.getElementById("train-search");
+    const searchStatusEl = document.getElementById("trains-search-status");
+    const paginationEl = document.getElementById("trains-pagination");
+    const pageStatusEl = document.getElementById("trains-page-status");
+    const previousButton = document.querySelector('[data-page-action="previous"]');
+    const nextButton = document.querySelector('[data-page-action="next"]');
 
     if (!listEl || !templateEl) {
         return;
     }
 
- 43-trains-search
+    const pageSize = 3;
+    let searchTerm = "";
     let currentPage = 1;
-    const pageSize = 10;
 
-    try {
-        const response = await fetch("/api/trains");
-43-trains-pagination
+    const loadTrains = async (page = 1) => {
+        if (loadingEl) {
+            loadingEl.hidden = false;
+        }
 
-    const loadTrains = async (page) => {
+        if (errorEl) {
+            errorEl.hidden = true;
+        }
+
         try {
-            const response = await fetch(`/api/trains?page=${page}&limit=${pageSize}`);
+            const params = new URLSearchParams({
+                page: String(page),
+                limit: String(pageSize),
+                search: searchTerm
+            });
+
+            const response = await fetch(`/api/trains?${params.toString()}`);
 
             if (!response.ok) {
                 throw new Error(`Failed to load trains (${response.status})`);
@@ -75,62 +80,48 @@ const hookTrainsCatalog = async () => {
 
             const payload = await response.json();
             const trains = payload.data || [];
-            const pagination = payload.pagination;
+            const pagination = payload.pagination || {};
+            currentPage = pagination.page || page;
+
             const fragment = document.createDocumentFragment();
 
             trains.forEach((train) => {
                 const card = templateEl.content.cloneNode(true);
                 const imageEl = card.querySelector('[data-field="image"]');
 
- 43-trains-search
                 imageEl.src = train.imageUrl;
                 imageEl.alt = train.imageAlt || `${train.name} train`;
-
-            card.querySelector('[data-field="name"]').textContent = train.name;
-            card.querySelector('[data-field="operator"]').textContent =
-                train.operator;
-            card.querySelector('[data-field="type"]').textContent = train.type;
-            card.querySelector('[data-field="speed"]').textContent =
-                `${train.maxSpeedKmh} km/h`;
-            card.querySelector('[data-field="seats"]').textContent =
-                `${train.capacity} seats`;
-            card.querySelector('[data-field="power"]').textContent =
-                train.powerSource;
-            card.querySelector('[data-field="description"]').textContent =
-                train.description;
-            card.querySelector('[data-field="best-for"]').textContent =
-                train.bestFor;
-           -trains-pagination
 
                 card.querySelector('[data-field="name"]').textContent = train.name;
                 card.querySelector('[data-field="operator"]').textContent = train.operator;
                 card.querySelector('[data-field="type"]').textContent = train.type;
-                card.querySelector('[data-field="speed"]').textContent = `${train.maxSpeedKmh} km/h`;
-                card.querySelector('[data-field="seats"]').textContent = `${train.capacity} seats`;
+                card.querySelector('[data-field="speed"]').textContent =
+                    `${train.maxSpeedKmh} km/h`;
+                card.querySelector('[data-field="seats"]').textContent =
+                    `${train.capacity} seats`;
                 card.querySelector('[data-field="power"]').textContent = train.powerSource;
-                card.querySelector('[data-field="description"]').textContent = train.description;
+                card.querySelector('[data-field="description"]').textContent =
+                    train.description;
                 card.querySelector('[data-field="best-for"]').textContent = train.bestFor;
 
                 fragment.appendChild(card);
             });
 
-  43-trains-search
             listEl.replaceChildren(fragment);
-        if (loadingEl) {
-            loadingEl.hidden = true;
-        }
-    } catch (error) {
-        console.error("Error loading trains:", error);
-      -trains-pagination
 
-            currentPage = pagination.page;
+            if (searchStatusEl) {
+                searchStatusEl.textContent = searchTerm
+                    ? `${pagination.totalItems || 0} train(s) found for "${searchTerm}".`
+                    : "";
+            }
 
             if (paginationEl) {
-                paginationEl.hidden = pagination.totalItems === 0;
+                paginationEl.hidden = (pagination.totalPages || 0) <= 1;
             }
 
             if (pageStatusEl) {
-                pageStatusEl.textContent = `Page ${pagination.page} of ${pagination.totalPages} · ${pagination.totalItems} trains`;
+                pageStatusEl.textContent =
+                    `Page ${currentPage} of ${pagination.totalPages || 1}`;
             }
 
             if (previousButton) {
@@ -140,46 +131,37 @@ const hookTrainsCatalog = async () => {
             if (nextButton) {
                 nextButton.disabled = !pagination.hasNextPage;
             }
-
-            if (loadingEl) {
-                loadingEl.hidden = true;
-            }
-
-            if (errorEl) {
-                errorEl.hidden = true;
-            }
         } catch (error) {
-            console.error('Error loading trains:', error);
-
-            if (loadingEl) {
-                loadingEl.hidden = true;
-            }
+            console.error("Error loading trains:", error);
 
             if (errorEl) {
                 errorEl.hidden = false;
-                errorEl.textContent = 'Unable to load trains right now. Please try again in a moment.';
+                errorEl.textContent =
+                    "Unable to load trains right now. Please try again in a moment.";
+            }
+        } finally {
+            if (loadingEl) {
+                loadingEl.hidden = true;
             }
         }
     };
 
-      43-trains-search
-    previousButton?.addEventListener('click', () => {
+    searchInput?.addEventListener("input", () => {
+        searchTerm = searchInput.value.trim();
+        loadTrains(1);
+    });
+
+    previousButton?.addEventListener("click", () => {
         if (currentPage > 1) {
             loadTrains(currentPage - 1);
-
-        if (errorEl) {
-            errorEl.hidden = false;
-            errorEl.textContent =
-                "Unable to load trains right now. Please try again in a moment.";
- 43-trains-pagination
         }
     });
 
-    nextButton?.addEventListener('click', () => {
+    nextButton?.addEventListener("click", () => {
         loadTrains(currentPage + 1);
     });
 
-    await loadTrains(currentPage);
+    await loadTrains(1);
 };
 
 const hookBookingsCatalog = async () => {

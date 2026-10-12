@@ -8,6 +8,7 @@ const trainsApi = async (req, res, next) => {
     try {
         const page = Number.parseInt(req.query.page, 10) || 1;
         const limit = Number.parseInt(req.query.limit, 10) || 10;
+        const search = req.query.search?.trim() || '';
 
         if (page < 1 || limit < 1 || limit > 50) {
             return res.status(400).json({
@@ -16,29 +17,21 @@ const trainsApi = async (req, res, next) => {
         }
 
         const collection = getDb().collection('trains');
- 43-trains-search
-        const search = req.query.search?.trim() || '';
-        const filter = search
-    ? {
-        $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { operator: { $regex: search, $options: 'i' } }
-        ]
-    }
-    : {};
 
-const totalItems = await collection.countDocuments(filter);
+        const filter = search
+            ? {
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { operator: { $regex: search, $options: 'i' } }
+                ]
+            }
+            : {};
+
+        const totalItems = await collection.countDocuments(filter);
         const totalPages = Math.ceil(totalItems / limit);
 
         const trains = await collection
             .find(filter)
-
-        const totalItems = await collection.countDocuments();
-        const totalPages = Math.ceil(totalItems / limit);
-
-        const trains = await collection
-            .find({})
- 43-trains-pagination
             .sort({ _id: 1 })
             .skip((page - 1) * limit)
             .limit(limit)
@@ -46,9 +39,7 @@ const totalItems = await collection.countDocuments(filter);
 
         return res.json({
             data: trains,
- 43-trains-search
             search,
- 43-trains-pagination
             pagination: {
                 page,
                 limit,
