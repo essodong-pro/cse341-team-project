@@ -14,6 +14,8 @@ import {
     getTripById
 } from "../controllers/trips.js";
 
+import { getTripStations } from "../controllers/trip-stations.js";
+
 import {
     getAllTicketClasses,
     getTicketClassesForDay
@@ -123,6 +125,7 @@ router.get("/trips", getAllTrips);
  *         description: A single trip object
  */
 router.get("/trips/:id", getTripById);
+router.get("/trips/:id/stations", getTripStations);
 
 /**
  * @swagger
