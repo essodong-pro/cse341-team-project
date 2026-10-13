@@ -1,4 +1,9 @@
-import express from "express";
+﻿import express from "express";
+import {
+    getAllStations,
+    getStationById
+} from "../controllers/stations.js";
+
 import {
     getAllTrains,
     getTrainById
@@ -8,6 +13,8 @@ import {
     getAllTrips,
     getTripById
 } from "../controllers/trips.js";
+
+import { getTripStations } from "../controllers/trip-stations.js";
 
 import {
     getAllTicketClasses,
@@ -34,15 +41,16 @@ import { requireApiSelfOrAdmin } from "../middleware/ownership.js";
 
 const router = express.Router();
 
+// Station read endpoints
+router.get("/stations", getAllStations);
+router.get("/stations/:id", getStationById);
+
+
 /**
  * @swagger
  * /api/trains:
  *   get:
- 43-trains-search
  *     summary: Returns paginated trains with keyword search
-
- *     summary: Returns paginated trains
- 43-trains-pagination
  *     parameters:
  *       - in: query
  *         name: page
@@ -59,20 +67,18 @@ const router = express.Router();
  *           maximum: 50
  *           default: 10
  *         description: Number of trains per page.
- 43-trains-search
  *       - in: query
  *         name: search
  *         schema:
  *           type: string
  *         description: Keyword to search train names or operators.
-
-43-trains-pagination
  *     responses:
  *       200:
  *         description: A paginated list of trains
  *       400:
  *         description: Invalid pagination parameters
  */
+
 router.get("/trains", getAllTrains);
 
 /**
@@ -119,6 +125,7 @@ router.get("/trips", getAllTrips);
  *         description: A single trip object
  */
 router.get("/trips/:id", getTripById);
+router.get("/trips/:id/stations", getTripStations);
 
 /**
  * @swagger
@@ -439,3 +446,4 @@ router.put("/users/:id", requireApiLogin, requireApiSelfOrAdmin, updateUserById)
 router.delete("/users/:id", requireApiLogin, requireApiSelfOrAdmin, deleteUserById);
 
 export default router;
+
