@@ -56,11 +56,40 @@ const router = express.Router();
  * @swagger
  * /trains:
  *   get:
- *     summary: Get all trains
+ *     summary: Get a paginated list of trains
  *     tags: [Trains]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number to return.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Number of trains per page.
  *     responses:
  *       200:
- *         description: List of trains
+ *         description: A page of trains with pagination metadata.
+ *         content:
+ *           application/json:
+ *             example:
+ *               trains: []
+ *               pagination:
+ *                 page: 1
+ *                 limit: 10
+ *                 totalItems: 4
+ *                 totalPages: 1
+ *                 hasNextPage: false
+ *                 hasPreviousPage: false
+ *       400:
+ *         description: Invalid pagination parameters.
  */
 router.get("/trains", getAllTrains);
 

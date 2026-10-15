@@ -13,6 +13,16 @@
 
     <div class="trains-grid" id="trains-list"></div>
 
+    <nav class="trains-pagination" id="trains-pagination" aria-label="Train list pages" hidden>
+        <button type="button" class="trains-pagination-button" id="trains-previous">
+            Previous
+        </button>
+        <span class="trains-page-status" id="trains-page-status">Page 1 of 1</span>
+        <button type="button" class="trains-pagination-button" id="trains-next">
+            Next
+        </button>
+    </nav>
+
     <template id="train-card-template">
         <article class="train-card">
             <div class="train-image-wrap">
