@@ -8,10 +8,35 @@
 </section>
 
 <section class="trains-catalog">
+    <form class="trains-search" id="trains-search" role="search">
+        <label for="trains-search-input">Search by train name or operator</label>
+        <div class="trains-search-controls">
+            <input
+                id="trains-search-input"
+                name="q"
+                type="search"
+                maxlength="100"
+                placeholder="Search trains..."
+            >
+            <button type="submit" class="trains-search-button">Search</button>
+            <button type="reset" class="trains-search-button trains-search-button-secondary">Clear</button>
+        </div>
+    </form>
+
     <div class="trains-state" id="trains-loading">Loading trains...</div>
     <div class="trains-state trains-error" id="trains-error" hidden></div>
 
     <div class="trains-grid" id="trains-list"></div>
+
+    <nav class="trains-pagination" id="trains-pagination" aria-label="Train list pages" hidden>
+        <button type="button" class="trains-pagination-button" id="trains-previous">
+            Previous
+        </button>
+        <span class="trains-page-status" id="trains-page-status">Page 1 of 1</span>
+        <button type="button" class="trains-pagination-button" id="trains-next">
+            Next
+        </button>
+    </nav>
 
     <template id="train-card-template">
         <article class="train-card">

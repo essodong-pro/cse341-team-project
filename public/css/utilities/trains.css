@@ -20,6 +20,51 @@
 .trains-catalog {
     display: block;
 
+    .trains-search {
+        display: grid;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-lg);
+
+        label {
+            color: var(--clr-text-primary);
+            font-weight: 500;
+        }
+    }
+
+    .trains-search-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+
+        input {
+            flex: 1 1 16rem;
+            min-width: 0;
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid #b7c4e8;
+            border-radius: var(--radius-md);
+            font: inherit;
+        }
+    }
+
+    .trains-search-button {
+        padding: var(--space-sm) var(--space-lg);
+        border: 1px solid var(--clr-primary);
+        border-radius: var(--radius-md);
+        background-color: var(--clr-primary);
+        color: var(--clr-text-alt-primary);
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .trains-search-button:hover {
+        background-color: var(--clr-accent);
+    }
+
+    .trains-search-button-secondary {
+        background-color: transparent;
+        color: var(--clr-primary);
+    }
+
     .trains-state {
         margin-bottom: var(--space-md);
         color: var(--clr-text-secondary);
@@ -33,6 +78,39 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: var(--space-lg);
+    }
+
+    .trains-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-md);
+        margin-top: var(--space-xl);
+    }
+
+    .trains-pagination-button {
+        padding: var(--space-sm) var(--space-lg);
+        border: 1px solid var(--clr-primary);
+        border-radius: var(--radius-md);
+        background-color: var(--clr-primary);
+        color: var(--clr-text-alt-primary);
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .trains-pagination-button:hover:not(:disabled) {
+        background-color: var(--clr-accent);
+    }
+
+    .trains-pagination-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .trains-page-status {
+        color: var(--clr-text-primary);
+        font-weight: 500;
+        white-space: nowrap;
     }
 
     .train-card {
